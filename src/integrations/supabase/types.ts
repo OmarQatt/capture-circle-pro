@@ -14,6 +14,276 @@ export type Database = {
   }
   public: {
     Tables: {
+      availability: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          is_available: boolean | null
+          service_id: string
+          service_type: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          is_available?: boolean | null
+          service_id: string
+          service_type: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          is_available?: boolean | null
+          service_id?: string
+          service_type?: string
+        }
+        Relationships: []
+      }
+      bookings: {
+        Row: {
+          client_id: string
+          created_at: string
+          end_date: string
+          id: string
+          notes: string | null
+          provider_id: string
+          service_id: string
+          service_type: string
+          start_date: string
+          status: string
+          total_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          notes?: string | null
+          provider_id: string
+          service_id: string
+          service_type: string
+          start_date: string
+          status?: string
+          total_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          notes?: string | null
+          provider_id?: string
+          service_id?: string
+          service_type?: string
+          start_date?: string
+          status?: string
+          total_price?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crew_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          daily_rate: number | null
+          experience_years: number | null
+          featured: boolean | null
+          id: string
+          portfolio_urls: string[] | null
+          role: string
+          skills: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          experience_years?: number | null
+          featured?: boolean | null
+          id?: string
+          portfolio_urls?: string[] | null
+          role?: string
+          skills?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          experience_years?: number | null
+          featured?: boolean | null
+          id?: string
+          portfolio_urls?: string[] | null
+          role?: string
+          skills?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      equipment: {
+        Row: {
+          brand: string | null
+          category: string | null
+          condition: string | null
+          created_at: string
+          daily_rate: number | null
+          description: string | null
+          id: string
+          images: string[] | null
+          model: string | null
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand?: string | null
+          category?: string | null
+          condition?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          model?: string | null
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand?: string | null
+          category?: string | null
+          condition?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          model?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      equipment_condition_logs: {
+        Row: {
+          booking_id: string | null
+          condition_notes: string | null
+          created_at: string
+          equipment_id: string
+          id: string
+          log_type: string
+          logged_by: string
+          photos: string[] | null
+        }
+        Insert: {
+          booking_id?: string | null
+          condition_notes?: string | null
+          created_at?: string
+          equipment_id: string
+          id?: string
+          log_type?: string
+          logged_by: string
+          photos?: string[] | null
+        }
+        Update: {
+          booking_id?: string | null
+          condition_notes?: string | null
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          log_type?: string
+          logged_by?: string
+          photos?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_condition_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_condition_logs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          address: string | null
+          category: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          description: string | null
+          featured: boolean | null
+          id: string
+          images: string[] | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          price_per_day: number | null
+          price_per_hour: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          featured?: boolean | null
+          id?: string
+          images?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          price_per_day?: number | null
+          price_per_hour?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          featured?: boolean | null
+          id?: string
+          images?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          price_per_day?: number | null
+          price_per_hour?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -50,12 +320,134 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          booking_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Insert: {
+          booking_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Update: {
+          booking_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          reviewee_id?: string
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_profiles: {
+        Row: {
+          age: number | null
+          bio: string | null
+          created_at: string
+          daily_rate: number | null
+          experience_years: number | null
+          featured: boolean | null
+          gender: string | null
+          height: number | null
+          hourly_rate: number | null
+          id: string
+          portfolio_urls: string[] | null
+          profile_type: string
+          skills: string[] | null
+          skin_tone: string | null
+          updated_at: string
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          age?: number | null
+          bio?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          experience_years?: number | null
+          featured?: boolean | null
+          gender?: string | null
+          height?: number | null
+          hourly_rate?: number | null
+          id?: string
+          portfolio_urls?: string[] | null
+          profile_type?: string
+          skills?: string[] | null
+          skin_tone?: string | null
+          updated_at?: string
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          age?: number | null
+          bio?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          experience_years?: number | null
+          featured?: boolean | null
+          gender?: string | null
+          height?: number | null
+          hourly_rate?: number | null
+          id?: string
+          portfolio_urls?: string[] | null
+          profile_type?: string
+          skills?: string[] | null
+          skin_tone?: string | null
+          updated_at?: string
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
