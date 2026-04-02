@@ -1,29 +1,36 @@
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, MapPin, Ruler } from "lucide-react";
+import { Search, Ruler, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const mockModels = [
-  { id: 1, name: "Sara Ahmed", gender: "Female", age: 24, height: "170cm", skinTone: "Light", city: "Dubai", experience: "5 years", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&q=80", available: true },
-  { id: 2, name: "Omar Hassan", gender: "Male", age: 28, height: "185cm", skinTone: "Medium", city: "Riyadh", experience: "3 years", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&q=80", available: true },
-  { id: 3, name: "Lina Farid", gender: "Female", age: 22, height: "168cm", skinTone: "Dark", city: "Cairo", experience: "2 years", image: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&q=80", available: false },
-  { id: 4, name: "Khalid Noor", gender: "Male", age: 31, height: "180cm", skinTone: "Light", city: "Jeddah", experience: "7 years", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80", available: true },
-  { id: 5, name: "Nadia Karam", gender: "Female", age: 26, height: "175cm", skinTone: "Medium", city: "Dubai", experience: "4 years", image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&q=80", available: true },
-  { id: 6, name: "Tariq Mansour", gender: "Male", age: 25, height: "178cm", skinTone: "Medium", city: "Riyadh", experience: "1 year", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&q=80", available: true },
-];
+const fallbackImage = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&q=80";
 
 const Models = () => {
   const [search, setSearch] = useState("");
+  const [genderFilter, setGenderFilter] = useState("all");
+  const [skinFilter, setSkinFilter] = useState("all");
 
-  const filtered = mockModels.filter((m) =>
-    m.name.toLowerCase().includes(search.toLowerCase()) ||
-    m.city.toLowerCase().includes(search.toLowerCase())
-  );
+  const { data: models = [], isLoading } = useQuery({
+    queryKey: ["talent_profiles", "model"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("talent_profiles").select("*, profiles:user_id(first_name, last_name)").eq("profile_type", "model").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filtered = models.filter((m) => {
+    const name = `${(m.profiles as any)?.first_name || ""} ${(m.profiles as any)?.last_name || ""}`.toLowerCase();
+    const matchSearch = name.includes(search.toLowerCase());
+    const matchGender = genderFilter === "all" || (m.gender || "").toLowerCase() === genderFilter;
+    const matchSkin = skinFilter === "all" || (m.skin_tone || "").toLowerCase() === skinFilter;
+    return matchSearch && matchGender && matchSkin;
+  });
 
   return (
     <Layout>
@@ -33,13 +40,12 @@ const Models = () => {
             Models & <span className="text-gradient-gold">Casting</span>
           </h1>
           <p className="mt-3 text-muted-foreground">Find the perfect talent for your production.</p>
-
           <div className="mt-8 flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Search talent..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
             </div>
-            <Select>
+            <Select value={genderFilter} onValueChange={setGenderFilter}>
               <SelectTrigger className="w-[130px]"><SelectValue placeholder="Gender" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
@@ -47,7 +53,7 @@ const Models = () => {
                 <SelectItem value="female">Female</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select value={skinFilter} onValueChange={setSkinFilter}>
               <SelectTrigger className="w-[140px]"><SelectValue placeholder="Skin Tone" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
@@ -56,48 +62,42 @@ const Models = () => {
                 <SelectItem value="dark">Dark</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
-              <SelectTrigger className="w-[130px]"><SelectValue placeholder="City" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="dubai">Dubai</SelectItem>
-                <SelectItem value="riyadh">Riyadh</SelectItem>
-                <SelectItem value="cairo">Cairo</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </section>
 
       <section className="py-12">
         <div className="container">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((model) => (
-              <Link to={`/models/${model.id}`} key={model.id}>
-                <Card className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
+          {isLoading ? (
+            <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          ) : filtered.length === 0 ? (
+            <p className="text-center text-muted-foreground py-20">No models found yet.</p>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((model) => (
+                <Card key={model.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
                   <div className="relative h-72 overflow-hidden">
-                    <img src={model.image} alt={model.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
-                    <Badge className={`absolute top-3 right-3 ${model.available ? "bg-green-600" : "bg-red-600"}`}>
-                      {model.available ? "Available" : "Unavailable"}
-                    </Badge>
+                    <img src={model.portfolio_urls?.[0] || fallbackImage} alt="Model" className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
                   </div>
                   <CardContent className="p-5">
-                    <h3 className="font-semibold text-foreground text-lg">{model.name}</h3>
+                    <h3 className="font-semibold text-foreground text-lg">
+                      {(model.profiles as any)?.first_name || "Unknown"} {(model.profiles as any)?.last_name || ""}
+                    </h3>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <Badge variant="secondary">{model.gender}</Badge>
-                      <Badge variant="secondary">Age {model.age}</Badge>
-                      <Badge variant="secondary">{model.skinTone}</Badge>
+                      {model.gender && <Badge variant="secondary">{model.gender}</Badge>}
+                      {model.age && <Badge variant="secondary">Age {model.age}</Badge>}
+                      {model.skin_tone && <Badge variant="secondary">{model.skin_tone}</Badge>}
                     </div>
                     <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Ruler className="h-3.5 w-3.5" />{model.height}</span>
-                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{model.city}</span>
+                      {model.height && <span className="flex items-center gap-1"><Ruler className="h-3.5 w-3.5" />{Number(model.height)}cm</span>}
+                      {model.daily_rate && <span className="text-primary font-semibold">${Number(model.daily_rate)}/day</span>}
                     </div>
-                    <p className="mt-2 text-sm text-primary font-medium">{model.experience} experience</p>
+                    <p className="mt-2 text-sm text-primary font-medium">{model.experience_years || 0} years experience</p>
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </Layout>
