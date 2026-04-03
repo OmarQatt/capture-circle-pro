@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, TrendingUp, Users, Plus, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import AddLocationDialog from "@/components/AddLocationDialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -74,9 +75,7 @@ const Dashboard = () => {
             <h1 className="font-display text-4xl text-foreground">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {user?.user_metadata?.first_name || "User"}!</p>
           </div>
-          <Button className="bg-gradient-gold text-primary-foreground font-semibold">
-            <Plus className="h-4 w-4 mr-2" /> Add Listing
-          </Button>
+          <AddLocationDialog />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3 mb-8">
@@ -138,7 +137,7 @@ const Dashboard = () => {
                 {myLocations.length + myEquipment.length === 0 ? (
                   <div className="text-center">
                     <p className="text-muted-foreground">You haven't added any listings yet.</p>
-                    <Button className="mt-4 bg-gradient-gold text-primary-foreground"><Plus className="h-4 w-4 mr-2" /> Add Your First Listing</Button>
+                    <div className="mt-4"><AddLocationDialog /></div>
                   </div>
                 ) : (
                   <div className="space-y-3">
