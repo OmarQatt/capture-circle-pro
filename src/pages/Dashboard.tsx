@@ -75,9 +75,7 @@ const Dashboard = () => {
             <h1 className="font-display text-4xl text-foreground">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {user?.user_metadata?.first_name || "User"}!</p>
           </div>
-          <Button className="bg-gradient-gold text-primary-foreground font-semibold">
-            <Plus className="h-4 w-4 mr-2" /> Add Listing
-          </Button>
+          <AddLocationDialog />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3 mb-8">
