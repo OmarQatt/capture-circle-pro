@@ -137,7 +137,7 @@ const Dashboard = () => {
                 {myLocations.length + myEquipment.length === 0 ? (
                   <div className="text-center">
                     <p className="text-muted-foreground">You haven't added any listings yet.</p>
-                    <Button className="mt-4 bg-gradient-gold text-primary-foreground"><Plus className="h-4 w-4 mr-2" /> Add Your First Listing</Button>
+                    <div className="mt-4"><AddLocationDialog /></div>
                   </div>
                 ) : (
                   <div className="space-y-3">
