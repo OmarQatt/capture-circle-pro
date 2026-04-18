@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, TrendingUp, Users, Plus, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import AddLocationDialog from "@/components/AddLocationDialog";
+import AddEquipmentDialog from "@/components/AddEquipmentDialog";
+import AddTalentDialog from "@/components/AddTalentDialog";
+import AddCrewDialog from "@/components/AddCrewDialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -75,7 +78,12 @@ const Dashboard = () => {
             <h1 className="font-display text-4xl text-foreground">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {user?.user_metadata?.first_name || "User"}!</p>
           </div>
-          <AddLocationDialog />
+          <div className="flex flex-wrap gap-2">
+            <AddLocationDialog />
+            <AddEquipmentDialog />
+            <AddTalentDialog />
+            <AddCrewDialog />
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3 mb-8">
@@ -136,8 +144,13 @@ const Dashboard = () => {
               <CardContent className="p-6">
                 {myLocations.length + myEquipment.length === 0 ? (
                   <div className="text-center">
-                    <p className="text-muted-foreground">You haven't added any listings yet.</p>
-                    <div className="mt-4"><AddLocationDialog /></div>
+                    <p className="text-muted-foreground">لم تقم بإضافة أي قوائم بعد.</p>
+                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                      <AddLocationDialog />
+                      <AddEquipmentDialog />
+                      <AddTalentDialog />
+                      <AddCrewDialog />
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
