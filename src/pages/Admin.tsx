@@ -35,9 +35,12 @@ const Admin = () => {
     queryKey: ["admin-pending-locations"],
     enabled: !!isAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase.from("locations").select("*, profiles:user_id(first_name, last_name)").eq("status", "pending").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("locations").select("*").eq("status", "pending").order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      const userIds = [...new Set((data || []).map((l: any) => l.user_id))];
+      const { data: profs } = await supabase.from("profiles").select("user_id, first_name, last_name").in("user_id", userIds);
+      const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
+      return (data || []).map((l: any) => ({ ...l, profiles: profMap.get(l.user_id) }));
     },
   });
 
