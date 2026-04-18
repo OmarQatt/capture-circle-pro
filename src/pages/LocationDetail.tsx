@@ -1,20 +1,17 @@
 import Layout from "@/components/Layout";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
-import { MapPin, Star, ArrowLeft, Shield, User, Loader2 } from "lucide-react";
+import { MapPin, ArrowLeft, Shield, Loader2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import BookingDialog from "@/components/BookingDialog";
 
 const fallbackImage = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80";
 
 const LocationDetail = () => {
   const { id } = useParams();
-  const [date, setDate] = useState<Date | undefined>(new Date());
 
   const { data: location, isLoading } = useQuery({
     queryKey: ["location", id],
@@ -85,14 +82,12 @@ const LocationDetail = () => {
                   )}
                 </div>
 
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-2">Select Date</p>
-                  <Calendar mode="single" selected={date} onSelect={setDate} className="rounded-md border border-border" />
-                </div>
-
-                <Button className="w-full bg-gradient-gold text-primary-foreground font-semibold shadow-gold">
-                  Request Booking
-                </Button>
+                <BookingDialog
+                  serviceId={location.id}
+                  serviceType="location"
+                  providerId={location.user_id}
+                  pricePerDay={Number(location.price_per_day) || 0}
+                />
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Shield className="h-4 w-4 text-primary" />
