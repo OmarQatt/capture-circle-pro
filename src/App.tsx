@@ -12,6 +12,8 @@ import Models from "./pages/Models";
 import Crew from "./pages/Crew";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import LocationDetail from "./pages/LocationDetail";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/crew" element={<Crew />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
