@@ -28,9 +28,21 @@ const Crew = () => {
   const { data: crew = [], isLoading } = useQuery({
     queryKey: ["crew_profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("crew_profiles").select("*, profiles:user_id(first_name, last_name, avatar_url)").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("crew_profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      const userIds = (data || []).map((c) => c.user_id);
+      let profilesMap: Record<string, { first_name: string | null; last_name: string | null; avatar_url: string | null }> = {};
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, avatar_url")
+          .in("user_id", userIds);
+        profilesMap = Object.fromEntries((profs || []).map((p) => [p.user_id, p]));
+      }
+      return (data || []).map((c) => ({ ...c, profiles: profilesMap[c.user_id] || null }));
     },
   });
 
