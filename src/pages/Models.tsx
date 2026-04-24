@@ -18,9 +18,22 @@ const Models = () => {
   const { data: models = [], isLoading } = useQuery({
     queryKey: ["talent_profiles", "model"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("talent_profiles").select("*, profiles:user_id(first_name, last_name)").eq("profile_type", "model").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("talent_profiles")
+        .select("*")
+        .eq("profile_type", "model")
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      const userIds = (data || []).map((m) => m.user_id);
+      let profilesMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name")
+          .in("user_id", userIds);
+        profilesMap = Object.fromEntries((profs || []).map((p) => [p.user_id, p]));
+      }
+      return (data || []).map((m) => ({ ...m, profiles: profilesMap[m.user_id] || null }));
     },
   });
 
