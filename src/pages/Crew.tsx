@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Briefcase, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/integrations/api/client";
 
 const fallbackAvatar = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80";
 
@@ -27,27 +27,11 @@ const Crew = () => {
 
   const { data: crew = [], isLoading } = useQuery({
     queryKey: ["crew_profiles"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("crew_profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const userIds = (data || []).map((c) => c.user_id);
-      let profilesMap: Record<string, { first_name: string | null; last_name: string | null; avatar_url: string | null }> = {};
-      if (userIds.length > 0) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name, avatar_url")
-          .in("user_id", userIds);
-        profilesMap = Object.fromEntries((profs || []).map((p) => [p.user_id, p]));
-      }
-      return (data || []).map((c) => ({ ...c, profiles: profilesMap[c.user_id] || null }));
-    },
+    queryFn: () => api.get<any[]>("/api/crew"),
   });
 
-  const filtered = crew.filter((c) => {
-    const name = `${(c.profiles as any)?.first_name || ""} ${(c.profiles as any)?.last_name || ""}`.toLowerCase();
+  const filtered = crew.filter((c: any) => {
+    const name = `${c.first_name || ""} ${c.last_name || ""}`.toLowerCase();
     const matchSearch = name.includes(search.toLowerCase()) || (c.role || "").toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "all" || c.role === roleFilter;
     return matchSearch && matchRole;
@@ -85,14 +69,14 @@ const Crew = () => {
             <p className="text-center text-muted-foreground py-20">No crew members found yet.</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((member) => (
+              {filtered.map((member: any) => (
                 <Card key={member.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      <img src={(member.profiles as any)?.avatar_url || fallbackAvatar} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" loading="lazy" />
+                      <img src={member.avatar_url || fallbackAvatar} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" loading="lazy" />
                       <div className="flex-1">
                         <h3 className="font-semibold text-foreground">
-                          {(member.profiles as any)?.first_name || "Unknown"} {(member.profiles as any)?.last_name || ""}
+                          {member.first_name || "Unknown"} {member.last_name || ""}
                         </h3>
                         <p className="mt-1 text-sm font-medium text-primary">{roleLabels[member.role] || member.role}</p>
                       </div>
@@ -103,7 +87,7 @@ const Crew = () => {
                     </div>
                     {member.skills && member.skills.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1">
-                        {member.skills.slice(0, 3).map((s) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
+                        {member.skills.slice(0, 3).map((s: string) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
                       </div>
                     )}
                   </CardContent>

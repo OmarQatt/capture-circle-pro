@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Star, Search, SlidersHorizontal, Loader2 } from "lucide-react";
+import { MapPin, Search, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/integrations/api/client";
 
 const fallbackImage = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80";
 
@@ -19,21 +19,17 @@ const Locations = () => {
 
   const { data: locations = [], isLoading } = useQuery({
     queryKey: ["locations"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("locations").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.get<any[]>("/api/locations"),
   });
 
-  const filtered = locations.filter((l) => {
+  const filtered = locations.filter((l: any) => {
     const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) || (l.city || "").toLowerCase().includes(search.toLowerCase());
     const matchCity = cityFilter === "all" || (l.city || "").toLowerCase() === cityFilter;
     const matchType = typeFilter === "all" || (l.category || "").toLowerCase() === typeFilter;
     return matchSearch && matchCity && matchType;
   });
 
-  const cities = [...new Set(locations.map((l) => l.city).filter(Boolean))];
+  const cities = [...new Set(locations.map((l: any) => l.city).filter(Boolean))];
 
   return (
     <Layout>
@@ -52,7 +48,7 @@ const Locations = () => {
               <SelectTrigger className="w-[150px]"><SelectValue placeholder="City" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Cities</SelectItem>
-                {cities.map((c) => <SelectItem key={c} value={c!.toLowerCase()}>{c}</SelectItem>)}
+                {cities.map((c: any) => <SelectItem key={c} value={c.toLowerCase()}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -78,7 +74,7 @@ const Locations = () => {
             <p className="text-center text-muted-foreground py-20">No locations found. Be the first to add one!</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((loc) => (
+              {filtered.map((loc: any) => (
                 <Link to={`/locations/${loc.id}`} key={loc.id}>
                   <Card className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
                     <div className="relative h-52 overflow-hidden">

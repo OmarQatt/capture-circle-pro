@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Ruler, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/integrations/api/client";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&q=80";
 
@@ -15,30 +15,15 @@ const Models = () => {
   const [genderFilter, setGenderFilter] = useState("all");
   const [skinFilter, setSkinFilter] = useState("all");
 
-  const { data: models = [], isLoading } = useQuery({
+  const { data: allTalent = [], isLoading } = useQuery({
     queryKey: ["talent_profiles", "model"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("talent_profiles")
-        .select("*")
-        .eq("profile_type", "model")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const userIds = (data || []).map((m) => m.user_id);
-      let profilesMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
-      if (userIds.length > 0) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name")
-          .in("user_id", userIds);
-        profilesMap = Object.fromEntries((profs || []).map((p) => [p.user_id, p]));
-      }
-      return (data || []).map((m) => ({ ...m, profiles: profilesMap[m.user_id] || null }));
-    },
+    queryFn: () => api.get<any[]>("/api/talent"),
   });
 
-  const filtered = models.filter((m) => {
-    const name = `${(m.profiles as any)?.first_name || ""} ${(m.profiles as any)?.last_name || ""}`.toLowerCase();
+  const models = allTalent.filter((t: any) => t.profile_type === "model");
+
+  const filtered = models.filter((m: any) => {
+    const name = `${m.first_name || ""} ${m.last_name || ""}`.toLowerCase();
     const matchSearch = name.includes(search.toLowerCase());
     const matchGender = genderFilter === "all" || (m.gender || "").toLowerCase() === genderFilter;
     const matchSkin = skinFilter === "all" || (m.skin_tone || "").toLowerCase() === skinFilter;
@@ -87,14 +72,14 @@ const Models = () => {
             <p className="text-center text-muted-foreground py-20">No models found yet.</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((model) => (
+              {filtered.map((model: any) => (
                 <Card key={model.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
                   <div className="relative h-72 overflow-hidden">
                     <img src={model.portfolio_urls?.[0] || fallbackImage} alt="Model" className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
                   </div>
                   <CardContent className="p-5">
                     <h3 className="font-semibold text-foreground text-lg">
-                      {(model.profiles as any)?.first_name || "Unknown"} {(model.profiles as any)?.last_name || ""}
+                      {model.first_name || "Unknown"} {model.last_name || ""}
                     </h3>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {model.gender && <Badge variant="secondary">{model.gender}</Badge>}
@@ -102,7 +87,7 @@ const Models = () => {
                       {model.skin_tone && <Badge variant="secondary">{model.skin_tone}</Badge>}
                     </div>
                     <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
-                      {model.height && <span className="flex items-center gap-1"><Ruler className="h-3.5 w-3.5" />{Number(model.height)}cm</span>}
+                      {model.height && <span className="flex items-center gap-1"><Ruler className="h-3.5 w-3.5" />{model.height}cm</span>}
                       {model.daily_rate && <span className="text-primary font-semibold">${Number(model.daily_rate)}/day</span>}
                     </div>
                     <p className="mt-2 text-sm text-primary font-medium">{model.experience_years || 0} years experience</p>

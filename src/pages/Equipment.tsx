@@ -7,7 +7,7 @@ import { Search, Camera, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/integrations/api/client";
 
 const fallbackImage = "https://images.unsplash.com/photo-1585506942812-e72b29cef752?w=600&q=80";
 
@@ -17,11 +17,7 @@ const Equipment = () => {
 
   const { data: equipment = [], isLoading } = useQuery({
     queryKey: ["equipment"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("equipment").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.get<any[]>("/api/equipment"),
   });
 
   const filtered = equipment.filter((e) => {

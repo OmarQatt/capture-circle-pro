@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, ArrowLeft, Shield, Loader2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/integrations/api/client";
 import BookingDialog from "@/components/BookingDialog";
 
 const fallbackImage = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80";
@@ -15,17 +15,13 @@ const LocationDetail = () => {
 
   const { data: location, isLoading } = useQuery({
     queryKey: ["location", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("locations").select("*, profiles:user_id(first_name, last_name)").eq("id", id).single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.get<any>(`/api/locations/${id}`),
   });
 
   if (isLoading) return <Layout><div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></Layout>;
   if (!location) return <Layout><div className="container py-20 text-center"><p className="text-muted-foreground">Location not found.</p><Link to="/locations" className="text-primary hover:underline mt-4 inline-block">Back to Locations</Link></div></Layout>;
 
-  const ownerName = `${(location.profiles as any)?.first_name || ""} ${(location.profiles as any)?.last_name || ""}`.trim() || "Unknown";
+  const ownerName = `${location.first_name || ""} ${location.last_name || ""}`.trim() || "Unknown";
   const images = location.images && location.images.length > 0 ? location.images : [fallbackImage];
 
   return (
@@ -42,7 +38,7 @@ const LocationDetail = () => {
             </div>
             {images.length > 1 && (
               <div className="mt-3 grid grid-cols-2 gap-3">
-                {images.slice(1, 3).map((img, i) => (
+                {images.slice(1, 3).map((img: string, i: number) => (
                   <img key={i} src={img} alt="" className="h-40 w-full rounded-lg object-cover" />
                 ))}
               </div>

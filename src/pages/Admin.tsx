@@ -1,12 +1,12 @@
 import Layout from "@/components/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, X, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/integrations/api/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -16,66 +16,42 @@ const Admin = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: isAdmin, isLoading: roleLoading } = useQuery({
-    queryKey: ["is-admin", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", user!.id).eq("role", "admin");
-      if (error) throw error;
-      return data && data.length > 0;
-    },
-  });
-
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
-    if (!authLoading && !roleLoading && user && isAdmin === false) navigate("/dashboard");
-  }, [authLoading, roleLoading, user, isAdmin, navigate]);
+    if (!authLoading && user && user.role !== "admin") navigate("/dashboard");
+  }, [authLoading, user, navigate]);
 
   const { data: pendingLocations = [], isLoading: locLoading } = useQuery({
     queryKey: ["admin-pending-locations"],
-    enabled: !!isAdmin,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("locations").select("*").eq("status", "pending").order("created_at", { ascending: false });
-      if (error) throw error;
-      const userIds = [...new Set((data || []).map((l: any) => l.user_id))];
-      const { data: profs } = await supabase.from("profiles").select("user_id, first_name, last_name").in("user_id", userIds);
-      const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
-      return (data || []).map((l: any) => ({ ...l, profiles: profMap.get(l.user_id) }));
-    },
+    enabled: user?.role === "admin",
+    queryFn: () => api.get<any[]>("/api/admin/locations/pending"),
   });
 
   const { data: allBookings = [], isLoading: bookLoading } = useQuery({
     queryKey: ["admin-bookings"],
-    enabled: !!isAdmin,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("bookings").select("*").order("created_at", { ascending: false }).limit(50);
-      if (error) throw error;
-      return data;
-    },
+    enabled: user?.role === "admin",
+    queryFn: () => api.get<any[]>("/api/admin/bookings"),
   });
 
-  const { data: allProfiles = [] } = useQuery({
-    queryKey: ["admin-profiles"],
-    enabled: !!isAdmin,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["admin-users"],
+    enabled: user?.role === "admin",
+    queryFn: () => api.get<any[]>("/api/admin/users"),
   });
 
   const updateLocationStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("locations").update({ status }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      api.patch(`/api/admin/locations/${id}/status`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-pending-locations"] });
       toast({ title: "Location updated" });
     },
+    onError: (err: any) => {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" });
+    },
   });
 
-  if (authLoading || roleLoading) return <Layout><div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></Layout>;
+  if (authLoading) return <Layout><div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></Layout>;
 
   return (
     <Layout>
@@ -104,7 +80,7 @@ const Admin = () => {
           <Card className="border-border/50">
             <CardContent className="p-6">
               <p className="text-sm text-muted-foreground">Registered Users</p>
-              <p className="mt-2 text-2xl font-bold text-foreground">{allProfiles.length}</p>
+              <p className="mt-2 text-2xl font-bold text-foreground">{allUsers.length}</p>
             </CardContent>
           </Card>
         </div>
@@ -136,11 +112,11 @@ const Admin = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {pendingLocations.map((loc) => (
+                        {pendingLocations.map((loc: any) => (
                           <tr key={loc.id} className="border-b border-border/50 hover:bg-muted/30">
                             <td className="p-4 font-medium text-foreground">{loc.name}</td>
                             <td className="p-4 text-muted-foreground">{loc.city}</td>
-                            <td className="p-4 text-muted-foreground">{(loc.profiles as any)?.first_name} {(loc.profiles as any)?.last_name}</td>
+                            <td className="p-4 text-muted-foreground">{loc.first_name} {loc.last_name}</td>
                             <td className="p-4 text-primary">${Number(loc.price_per_day) || 0}</td>
                             <td className="p-4 text-right space-x-2">
                               <Button size="sm" variant="outline" className="text-green-500 border-green-500/30" onClick={() => updateLocationStatus.mutate({ id: loc.id, status: "approved" })}>
@@ -179,10 +155,10 @@ const Admin = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {allBookings.map((b) => (
+                        {allBookings.map((b: any) => (
                           <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30">
                             <td className="p-4"><Badge variant="outline">{b.service_type}</Badge></td>
-                            <td className="p-4 text-muted-foreground">{b.start_date} → {b.end_date}</td>
+                            <td className="p-4 text-muted-foreground">{b.start_date?.slice(0,10)} → {b.end_date?.slice(0,10)}</td>
                             <td className="p-4"><Badge>{b.status}</Badge></td>
                             <td className="p-4 text-right font-semibold text-primary">${Number(b.total_price) || 0}</td>
                           </tr>
@@ -198,7 +174,7 @@ const Admin = () => {
           <TabsContent value="users" className="mt-4">
             <Card className="border-border/50">
               <CardContent className="p-0">
-                {allProfiles.length === 0 ? (
+                {allUsers.length === 0 ? (
                   <p className="p-8 text-center text-muted-foreground">No users yet.</p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -206,16 +182,18 @@ const Admin = () => {
                       <thead>
                         <tr className="border-b border-border text-sm text-muted-foreground">
                           <th className="p-4 text-left font-medium">Name</th>
+                          <th className="p-4 text-left font-medium">Email</th>
                           <th className="p-4 text-left font-medium">Role</th>
                           <th className="p-4 text-left font-medium">Joined</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {allProfiles.map((p) => (
-                          <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30">
-                            <td className="p-4 font-medium text-foreground">{p.first_name} {p.last_name}</td>
-                            <td className="p-4"><Badge variant="secondary">{p.role}</Badge></td>
-                            <td className="p-4 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
+                        {allUsers.map((u: any) => (
+                          <tr key={u.id} className="border-b border-border/50 hover:bg-muted/30">
+                            <td className="p-4 font-medium text-foreground">{u.first_name} {u.last_name}</td>
+                            <td className="p-4 text-muted-foreground">{u.email}</td>
+                            <td className="p-4"><Badge variant="secondary">{u.role}</Badge></td>
+                            <td className="p-4 text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
                           </tr>
                         ))}
                       </tbody>

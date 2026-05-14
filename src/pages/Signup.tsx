@@ -6,11 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
 import { Film, Loader2 } from "lucide-react";
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import api from "@/integrations/api/client";
 
 const Signup = () => {
   const [firstName, setFirstName] = useState("");
@@ -20,7 +19,7 @@ const Signup = () => {
   const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, setAuthUser } = useAuth();
 
   useEffect(() => {
     if (user) navigate("/dashboard");
@@ -33,19 +32,19 @@ const Signup = () => {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { first_name: firstName, last_name: lastName, role },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    setLoading(false);
-    if (error) {
-      toast({ title: "Signup failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Account created!", description: "Please check your email to verify your account." });
+    try {
+      const data = await api.post<{ accessToken: string; refreshToken: string; user: any }>(
+        "/api/auth/signup",
+        { email, password, first_name: firstName, last_name: lastName, role }
+      );
+      api.setTokens(data.accessToken, data.refreshToken);
+      setAuthUser(data.user);
+      toast({ title: "Account created!", description: "Welcome to ProdHub!" });
+      navigate("/dashboard");
+    } catch (err: any) {
+      toast({ title: "Signup failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 

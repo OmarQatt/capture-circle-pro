@@ -6,10 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import api from "@/integrations/api/client";
 
 const categories = [
   { value: "villa", label: "Villa" },
@@ -27,19 +27,12 @@ const AddLocationDialog = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    name: "",
-    description: "",
-    address: "",
-    city: "",
-    country: "Saudi Arabia",
-    category: "studio",
-    price_per_hour: "",
-    price_per_day: "",
+    name: "", description: "", address: "", city: "",
+    country: "Saudi Arabia", category: "studio",
+    price_per_hour: "", price_per_day: "",
   });
 
-  const handleChange = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleChange = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }));
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -47,32 +40,28 @@ const AddLocationDialog = () => {
       toast.error("Please fill in at least the name and city.");
       return;
     }
-
     setLoading(true);
-    const { error } = await supabase.from("locations").insert({
-      user_id: user.id,
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      address: form.address.trim() || null,
-      city: form.city.trim(),
-      country: form.country.trim() || "Saudi Arabia",
-      category: form.category,
-      price_per_hour: form.price_per_hour ? Number(form.price_per_hour) : null,
-      price_per_day: form.price_per_day ? Number(form.price_per_day) : null,
-      status: "pending",
-    });
-    setLoading(false);
-
-    if (error) {
-      toast.error("Failed to submit location: " + error.message);
-      return;
+    try {
+      await api.post("/api/locations", {
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        address: form.address.trim() || null,
+        city: form.city.trim(),
+        country: form.country.trim() || "Saudi Arabia",
+        category: form.category,
+        price_per_hour: form.price_per_hour ? Number(form.price_per_hour) : null,
+        price_per_day: form.price_per_day ? Number(form.price_per_day) : null,
+      });
+      toast.success("Location submitted for admin approval!");
+      setForm({ name: "", description: "", address: "", city: "", country: "Saudi Arabia", category: "studio", price_per_hour: "", price_per_day: "" });
+      setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["my-locations"] });
+      queryClient.invalidateQueries({ queryKey: ["locations"] });
+    } catch (err: any) {
+      toast.error("Failed to submit location: " + err.message);
+    } finally {
+      setLoading(false);
     }
-
-    toast.success("Location submitted for admin approval!");
-    setForm({ name: "", description: "", address: "", city: "", country: "Saudi Arabia", category: "studio", price_per_hour: "", price_per_day: "" });
-    setOpen(false);
-    queryClient.invalidateQueries({ queryKey: ["my-locations"] });
-    queryClient.invalidateQueries({ queryKey: ["locations"] });
   };
 
   return (
@@ -83,9 +72,7 @@ const AddLocationDialog = () => {
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add New Location</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>Add New Location</DialogTitle></DialogHeader>
         <div className="space-y-4 mt-2">
           <div>
             <Label htmlFor="loc-name">Location Name *</Label>

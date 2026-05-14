@@ -2,15 +2,14 @@ import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, TrendingUp, Users, Plus, Loader2 } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import AddLocationDialog from "@/components/AddLocationDialog";
 import AddEquipmentDialog from "@/components/AddEquipmentDialog";
 import AddTalentDialog from "@/components/AddTalentDialog";
 import AddCrewDialog from "@/components/AddCrewDialog";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/integrations/api/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
@@ -35,31 +34,19 @@ const Dashboard = () => {
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ["my-bookings", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("bookings").select("*").order("created_at", { ascending: false }).limit(10);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.get<any[]>("/api/bookings/my-bookings?limit=10"),
   });
 
   const { data: myLocations = [] } = useQuery({
     queryKey: ["my-locations", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("locations").select("*").eq("user_id", user!.id);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.get<any[]>("/api/locations/my-locations"),
   });
 
   const { data: myEquipment = [] } = useQuery({
     queryKey: ["my-equipment", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("equipment").select("*").eq("user_id", user!.id);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.get<any[]>("/api/equipment/my-equipment"),
   });
 
   if (authLoading) return <Layout><div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></Layout>;
@@ -76,7 +63,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="font-display text-4xl text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, {user?.user_metadata?.first_name || "User"}!</p>
+            <p className="text-muted-foreground">Welcome back, {user?.first_name || "User"}!</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <AddLocationDialog />
@@ -124,10 +111,10 @@ const Dashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {bookings.map((b) => (
+                        {bookings.map((b: any) => (
                           <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30">
                             <td className="p-4"><Badge variant="outline">{b.service_type}</Badge></td>
-                            <td className="p-4 text-muted-foreground">{b.start_date} → {b.end_date}</td>
+                            <td className="p-4 text-muted-foreground">{b.start_date?.slice(0, 10)} → {b.end_date?.slice(0, 10)}</td>
                             <td className="p-4"><Badge className={statusColor(b.status)}>{b.status}</Badge></td>
                             <td className="p-4 text-right font-semibold text-primary">${Number(b.total_price) || 0}</td>
                           </tr>
@@ -144,17 +131,15 @@ const Dashboard = () => {
               <CardContent className="p-6">
                 {myLocations.length + myEquipment.length === 0 ? (
                   <div className="text-center">
-                    <p className="text-muted-foreground">لم تقم بإضافة أي قوائم بعد.</p>
+                    <p className="text-muted-foreground">You haven't added any listings yet.</p>
                     <div className="mt-4 flex flex-wrap gap-2 justify-center">
                       <AddLocationDialog />
                       <AddEquipmentDialog />
-                      <AddTalentDialog />
-                      <AddCrewDialog />
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {myLocations.map((l) => (
+                    {myLocations.map((l: any) => (
                       <div key={l.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                         <div>
                           <p className="font-medium text-foreground">{l.name}</p>
@@ -163,7 +148,7 @@ const Dashboard = () => {
                         <Badge className={l.status === "approved" ? "bg-green-600" : "bg-amber-600"}>{l.status}</Badge>
                       </div>
                     ))}
-                    {myEquipment.map((e) => (
+                    {myEquipment.map((e: any) => (
                       <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                         <div>
                           <p className="font-medium text-foreground">{e.name}</p>
