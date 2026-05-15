@@ -10,19 +10,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import api from "@/integrations/api/client";
+import ImageUpload from "@/components/ImageUpload";
 
 const categories = ["camera", "lens", "lighting", "audio", "grip", "drone", "other"];
 const conditions = ["excellent", "good", "fair"];
+
+const emptyForm = {
+  name: "", description: "", brand: "", model: "",
+  category: "camera", condition: "excellent", daily_rate: "",
+};
 
 const AddEquipmentDialog = () => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    name: "", description: "", brand: "", model: "",
-    category: "camera", condition: "excellent", daily_rate: "",
-  });
+  const [form, setForm] = useState(emptyForm);
+  const [images, setImages] = useState<string[]>([]);
 
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -39,9 +43,11 @@ const AddEquipmentDialog = () => {
         category: form.category,
         condition: form.condition,
         daily_rate: form.daily_rate ? Number(form.daily_rate) : null,
+        images,
       });
       toast.success("Equipment added successfully!");
-      setForm({ name: "", description: "", brand: "", model: "", category: "camera", condition: "excellent", daily_rate: "" });
+      setForm(emptyForm);
+      setImages([]);
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["my-equipment"] });
       qc.invalidateQueries({ queryKey: ["equipment"] });
@@ -92,6 +98,7 @@ const AddEquipmentDialog = () => {
             <Label>Daily Rate ($)</Label>
             <Input type="number" min="0" value={form.daily_rate} onChange={(e) => set("daily_rate", e.target.value)} />
           </div>
+          <ImageUpload urls={images} onChange={setImages} max={8} label="Equipment Photos" />
           <Button onClick={submit} disabled={loading} className="w-full bg-gradient-gold text-primary-foreground font-semibold">
             {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Save Equipment
           </Button>

@@ -6,24 +6,30 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Briefcase, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import api from "@/integrations/api/client";
 
 const fallbackAvatar = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80";
 
-const roleLabels: Record<string, string> = {
-  camera_operator: "Camera Operator",
-  director_of_photography: "Director of Photography",
-  first_ac: "1st AC",
-  second_ac: "2nd AC",
-  third_ac: "3rd AC",
-  photographer: "Photographer",
-  videographer: "Videographer",
-  gaffer: "Gaffer",
-};
+const crewRoleKeys = [
+  "camera_operator",
+  "director_of_photography",
+  "first_ac",
+  "second_ac",
+  "third_ac",
+  "photographer",
+  "videographer",
+  "gaffer",
+  "sound_engineer",
+  "editor",
+  "director",
+] as const;
 
 const Crew = () => {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const { t } = useTranslation();
 
   const { data: crew = [], isLoading } = useQuery({
     queryKey: ["crew_profiles"],
@@ -42,19 +48,21 @@ const Crew = () => {
       <section className="border-b border-border bg-card/30 py-16">
         <div className="container">
           <h1 className="font-display text-4xl text-foreground sm:text-5xl">
-            Production <span className="text-gradient-gold">Crew</span>
+            {t('crew.titleMain')} <span className="text-gradient-gold">{t('crew.titleHighlight')}</span>
           </h1>
-          <p className="mt-3 text-muted-foreground">Hire experienced DPs, ACs, photographers, and specialists.</p>
+          <p className="mt-3 text-muted-foreground">{t('crew.desc')}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search crew..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder={t('crew.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10" />
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Role" /></SelectTrigger>
+              <SelectTrigger className="w-[200px]"><SelectValue placeholder={t('crew.role')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                {Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                <SelectItem value="all">{t('crew.allRoles')}</SelectItem>
+                {crewRoleKeys.map((k) => (
+                  <SelectItem key={k} value={k}>{t(`crew.roles.${k}`)}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -66,32 +74,39 @@ const Crew = () => {
           {isLoading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : filtered.length === 0 ? (
-            <p className="text-center text-muted-foreground py-20">No crew members found yet.</p>
+            <p className="text-center text-muted-foreground py-20">{t('crew.empty')}</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((member: any) => (
-                <Card key={member.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <img src={member.avatar_url || fallbackAvatar} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" loading="lazy" />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground">
-                          {member.first_name || "Unknown"} {member.last_name || ""}
-                        </h3>
-                        <p className="mt-1 text-sm font-medium text-primary">{roleLabels[member.role] || member.role}</p>
+                <Link key={member.id} to={`/profile/${member.user_id}`}>
+                  <Card className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <img src={member.portfolio_urls?.[0] || member.avatar_url || fallbackAvatar} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" loading="lazy" />
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">
+                            {member.first_name || "—"} {member.last_name || ""}
+                          </h3>
+                          <p className="mt-1 text-sm font-medium text-primary">
+                            {t(`crew.roles.${member.role}`, { defaultValue: member.role })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" />{member.experience_years || 0} years</span>
-                      {member.daily_rate && <span className="text-primary font-semibold">${Number(member.daily_rate)}/day</span>}
-                    </div>
-                    {member.skills && member.skills.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        {member.skills.slice(0, 3).map((s: string) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
+                      <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" />{member.experience_years || 0} {t('crew.yearsExp')}</span>
+                        {member.daily_rate && <span className="text-primary font-semibold">${Number(member.daily_rate)}{t('crew.perDay')}</span>}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      {member.skills && member.skills.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1">
+                          {member.skills.slice(0, 3).map((s: string) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
+                        </div>
+                      )}
+                      <p className="mt-4 text-xs text-primary font-medium border-t border-border/50 pt-3">
+                        {t('crew.viewProfile')}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           )}

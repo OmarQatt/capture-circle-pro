@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_name VARCHAR(100),
   phone VARCHAR(20),
   avatar_url TEXT,
-  role VARCHAR(50) CHECK (role IN ('client','location_owner','equipment_provider','model','crew','admin')) DEFAULT 'client',
+  role VARCHAR(50) CHECK (role IN ('user','client','location_owner','equipment_provider','model','crew','admin')) DEFAULT 'user',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -34,8 +34,9 @@ CREATE TABLE IF NOT EXISTS locations (
   city VARCHAR(100),
   country VARCHAR(100),
   category VARCHAR(100),
+  price_per_6hours NUMERIC(10,2),
+  price_per_12hours NUMERIC(10,2),
   price_per_day NUMERIC(10,2),
-  price_per_hour NUMERIC(10,2),
   status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','active','inactive')),
   featured BOOLEAN DEFAULT FALSE,
   images TEXT[] DEFAULT '{}',
@@ -105,6 +106,7 @@ CREATE TABLE IF NOT EXISTS talent_profiles (
   experience_years INT,
   skills TEXT[] DEFAULT '{}',
   portfolio_urls TEXT[] DEFAULT '{}',
+  portfolio_videos TEXT[] DEFAULT '{}',
   featured BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

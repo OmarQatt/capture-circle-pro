@@ -21,7 +21,10 @@ router.get('/my-equipment', authenticate, async (req, res: Response<ApiResponse<
 router.get('/', async (_req, res: Response<ApiResponse<Equipment[]>>) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM equipment WHERE status = 'available' ORDER BY created_at DESC"
+      `SELECT e.*, u.first_name, u.last_name, u.avatar_url
+       FROM equipment e JOIN users u ON e.user_id = u.id
+       WHERE e.status = 'available' AND e.approval_status = 'approved'
+       ORDER BY e.created_at DESC`
     );
     res.json({ success: true, data: rows, meta: { total: rows.length } });
   } catch (err) {

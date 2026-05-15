@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
-import { Film, Loader2 } from "lucide-react";
+import { Film, Loader2, MailCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import api from "@/integrations/api/client";
 
 const Signup = () => {
@@ -16,10 +16,11 @@ const Signup = () => {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
   const navigate = useNavigate();
-  const { user, setAuthUser } = useAuth();
+  const { user } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (user) navigate("/dashboard");
@@ -27,26 +28,42 @@ const Signup = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!role) {
-      toast({ title: "Please select your role", variant: "destructive" });
-      return;
-    }
     setLoading(true);
     try {
-      const data = await api.post<{ accessToken: string; refreshToken: string; user: any }>(
-        "/api/auth/signup",
-        { email, password, first_name: firstName, last_name: lastName, role }
-      );
-      api.setTokens(data.accessToken, data.refreshToken);
-      setAuthUser(data.user);
-      toast({ title: "Account created!", description: "Welcome to ProdHub!" });
-      navigate("/dashboard");
+      await api.post("/api/auth/signup", { email, password, first_name: firstName, last_name: lastName });
+      setDone(true);
     } catch (err: any) {
       toast({ title: "Signup failed", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
+
+  if (done) {
+    return (
+      <Layout>
+        <section className="flex min-h-[80vh] items-center justify-center py-12">
+          <Card className="w-full max-w-md border-border/50 bg-card text-center">
+            <CardHeader>
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <MailCheck className="h-7 w-7 text-primary" />
+              </div>
+              <CardTitle className="font-display text-2xl">{t('auth.signup.checkEmailTitle')}</CardTitle>
+              <CardDescription>
+                {t('auth.signup.checkEmailDesc', { email })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {t('auth.signup.alreadyVerified')}{" "}
+                <Link to="/login" className="text-primary hover:underline">{t('auth.signup.loginHere')}</Link>
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -56,48 +73,35 @@ const Signup = () => {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
               <Film className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle className="font-display text-3xl">Create Account</CardTitle>
-            <CardDescription>Join ProdHub and start booking</CardDescription>
+            <CardTitle className="font-display text-3xl">{t('auth.signup.title')}</CardTitle>
+            <CardDescription>{t('auth.signup.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="John" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                  <Label htmlFor="firstName">{t('auth.signup.firstName')}</Label>
+                  <Input id="firstName" placeholder={t('auth.signup.firstNamePlaceholder')} value={firstName} onChange={e => setFirstName(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Doe" value={lastName} onChange={e => setLastName(e.target.value)} required />
+                  <Label htmlFor="lastName">{t('auth.signup.lastName')}</Label>
+                  <Input id="lastName" placeholder={t('auth.signup.lastNamePlaceholder')} value={lastName} onChange={e => setLastName(e.target.value)} required />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Label htmlFor="email">{t('auth.signup.email')}</Label>
+                <Input id="email" type="email" placeholder={t('auth.signup.emailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">I am a</Label>
-                <Select value={role} onValueChange={setRole}>
-                  <SelectTrigger><SelectValue placeholder="Select your role" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="client">Client (Renter)</SelectItem>
-                    <SelectItem value="location_owner">Location Owner</SelectItem>
-                    <SelectItem value="equipment_provider">Equipment Provider</SelectItem>
-                    <SelectItem value="model">Model / Talent</SelectItem>
-                    <SelectItem value="crew">Crew Member</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t('auth.signup.password')}</Label>
                 <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
               </div>
               <Button type="submit" className="w-full bg-gradient-gold text-primary-foreground font-semibold shadow-gold" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.signup.submit')}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <Link to="/login" className="text-primary hover:underline">Sign in</Link>
+                {t('auth.signup.hasAccount')}{" "}
+                <Link to="/login" className="text-primary hover:underline">{t('auth.signup.loginLink')}</Link>
               </p>
             </form>
           </CardContent>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cairo:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -87,4 +87,25 @@
   .shadow-gold {
     box-shadow: var(--shadow-gold);
   }
+}
+
+/* RTL / Arabic language overrides */
+[dir="rtl"] body,
+[dir="rtl"] {
+  font-family: 'Cairo', sans-serif;
+}
+
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] h5,
+[dir="rtl"] .font-display {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
 }

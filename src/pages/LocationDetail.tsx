@@ -71,11 +71,14 @@ const LocationDetail = () => {
           <div className="lg:col-span-1">
             <Card className="sticky top-24 border-border/50">
               <CardContent className="p-6 space-y-6">
-                <div>
-                  <p className="text-3xl font-bold text-primary">${Number(location.price_per_day) || 0}<span className="text-base text-muted-foreground font-normal">/day</span></p>
-                  {location.price_per_hour && (
-                    <p className="text-sm text-muted-foreground">${Number(location.price_per_hour)}/hour also available</p>
+                <div className="space-y-1">
+                  {location.price_per_6hours && (
+                    <p className="text-lg font-semibold text-primary">${Number(location.price_per_6hours)}<span className="text-sm text-muted-foreground font-normal"> / 6 hours</span></p>
                   )}
+                  {location.price_per_12hours && (
+                    <p className="text-lg font-semibold text-primary">${Number(location.price_per_12hours)}<span className="text-sm text-muted-foreground font-normal"> / 12 hours</span></p>
+                  )}
+                  <p className="text-3xl font-bold text-primary">${Number(location.price_per_day) || 0}<span className="text-base text-muted-foreground font-normal"> / day</span></p>
                 </div>
 
                 <BookingDialog
@@ -83,6 +86,8 @@ const LocationDetail = () => {
                   serviceType="location"
                   providerId={location.user_id}
                   pricePerDay={Number(location.price_per_day) || 0}
+                  pricePer6Hours={location.price_per_6hours ? Number(location.price_per_6hours) : undefined}
+                  pricePer12Hours={location.price_per_12hours ? Number(location.price_per_12hours) : undefined}
                 />
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -92,7 +97,9 @@ const LocationDetail = () => {
 
                 <div className="border-t border-border pt-4">
                   <p className="text-sm text-muted-foreground">Listed by</p>
-                  <p className="font-medium text-foreground">{ownerName}</p>
+                  <Link to={`/profile/${location.user_id}`} className="font-medium text-foreground hover:text-primary transition-colors">
+                    {ownerName}
+                  </Link>
                 </div>
               </CardContent>
             </Card>

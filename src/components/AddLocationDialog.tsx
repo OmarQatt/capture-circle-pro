@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import api from "@/integrations/api/client";
+import ImageUpload from "@/components/ImageUpload";
 
 const categories = [
   { value: "villa", label: "Villa" },
@@ -21,16 +22,19 @@ const categories = [
   { value: "outdoor", label: "Outdoor" },
 ];
 
+const emptyForm = {
+  name: "", description: "", address: "", city: "",
+  country: "Saudi Arabia", category: "studio",
+  price_per_6hours: "", price_per_12hours: "", price_per_day: "",
+};
+
 const AddLocationDialog = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    name: "", description: "", address: "", city: "",
-    country: "Saudi Arabia", category: "studio",
-    price_per_hour: "", price_per_day: "",
-  });
+  const [form, setForm] = useState(emptyForm);
+  const [images, setImages] = useState<string[]>([]);
 
   const handleChange = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }));
 
@@ -49,11 +53,14 @@ const AddLocationDialog = () => {
         city: form.city.trim(),
         country: form.country.trim() || "Saudi Arabia",
         category: form.category,
-        price_per_hour: form.price_per_hour ? Number(form.price_per_hour) : null,
+        price_per_6hours: form.price_per_6hours ? Number(form.price_per_6hours) : null,
+        price_per_12hours: form.price_per_12hours ? Number(form.price_per_12hours) : null,
         price_per_day: form.price_per_day ? Number(form.price_per_day) : null,
+        images,
       });
       toast.success("Location submitted for admin approval!");
-      setForm({ name: "", description: "", address: "", city: "", country: "Saudi Arabia", category: "studio", price_per_hour: "", price_per_day: "" });
+      setForm(emptyForm);
+      setImages([]);
       setOpen(false);
       queryClient.invalidateQueries({ queryKey: ["my-locations"] });
       queryClient.invalidateQueries({ queryKey: ["locations"] });
@@ -105,16 +112,24 @@ const AddLocationDialog = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="loc-pph">Price / Hour ($)</Label>
-              <Input id="loc-pph" type="number" min="0" placeholder="0" value={form.price_per_hour} onChange={(e) => handleChange("price_per_hour", e.target.value)} />
-            </div>
-            <div>
-              <Label htmlFor="loc-ppd">Price / Day ($)</Label>
-              <Input id="loc-ppd" type="number" min="0" placeholder="0" value={form.price_per_day} onChange={(e) => handleChange("price_per_day", e.target.value)} />
+          <div>
+            <Label className="text-sm text-muted-foreground mb-2 block">Pricing</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="loc-pp6h" className="text-xs">6 Hours ($)</Label>
+                <Input id="loc-pp6h" type="number" min="0" placeholder="0" value={form.price_per_6hours} onChange={(e) => handleChange("price_per_6hours", e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="loc-pp12h" className="text-xs">12 Hours ($)</Label>
+                <Input id="loc-pp12h" type="number" min="0" placeholder="0" value={form.price_per_12hours} onChange={(e) => handleChange("price_per_12hours", e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="loc-ppd" className="text-xs">Day ($)</Label>
+                <Input id="loc-ppd" type="number" min="0" placeholder="0" value={form.price_per_day} onChange={(e) => handleChange("price_per_day", e.target.value)} />
+              </div>
             </div>
           </div>
+          <ImageUpload urls={images} onChange={setImages} max={10} label="Location Photos" />
           <Button onClick={handleSubmit} disabled={loading} className="w-full bg-gradient-gold text-primary-foreground font-semibold">
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Submit for Approval

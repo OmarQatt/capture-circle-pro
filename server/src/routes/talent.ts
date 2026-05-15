@@ -10,6 +10,7 @@ router.get('/', async (_req, res: Response<ApiResponse<any[]>>) => {
     const { rows } = await pool.query(
       `SELECT tp.*, u.first_name, u.last_name, u.avatar_url, u.email
        FROM talent_profiles tp JOIN users u ON tp.user_id = u.id
+       WHERE tp.status = 'approved'
        ORDER BY tp.featured DESC, tp.created_at DESC`
     );
     res.json({ success: true, data: rows, meta: { total: rows.length } });
@@ -32,20 +33,24 @@ router.get('/my-profile', authenticate, async (req, res: Response<ApiResponse<Ta
 
 router.post('/', authenticate, async (req, res: Response<ApiResponse<TalentProfile>>) => {
   try {
-    const { profile_type, bio, gender, age, height, weight, skin_tone, daily_rate, hourly_rate, experience_years, skills, portfolio_urls } = req.body;
+    const { profile_type, bio, age, height, weight, skin_tone, daily_rate, hourly_rate, experience_years, skills, portfolio_urls, portfolio_videos } = req.body;
 
     const existing = await pool.query('SELECT id FROM talent_profiles WHERE user_id = $1', [req.user!.userId]);
     if (existing.rows.length > 0)
       return res.status(409).json({ success: false, error: 'Talent profile already exists' });
+
+    // Pull gender from the user's own profile
+    const userRow = await pool.query('SELECT gender FROM users WHERE id = $1', [req.user!.userId]);
+    const gender = userRow.rows[0]?.gender ?? null;
 
     const skillsArr = typeof skills === 'string'
       ? skills.split(',').map((s: string) => s.trim()).filter(Boolean)
       : skills ?? [];
 
     const { rows } = await pool.query(
-      `INSERT INTO talent_profiles (user_id,profile_type,bio,gender,age,height,weight,skin_tone,daily_rate,hourly_rate,experience_years,skills,portfolio_urls)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [req.user!.userId, profile_type ?? null, bio ?? null, gender ?? null, age ?? null, height ?? null, weight ?? null, skin_tone ?? null, daily_rate ?? null, hourly_rate ?? null, experience_years ?? null, skillsArr, portfolio_urls ?? []]
+      `INSERT INTO talent_profiles (user_id,profile_type,bio,gender,age,height,weight,skin_tone,daily_rate,hourly_rate,experience_years,skills,portfolio_urls,portfolio_videos)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+      [req.user!.userId, profile_type ?? null, bio ?? null, gender, age ?? null, height ?? null, weight ?? null, skin_tone ?? null, daily_rate ?? null, hourly_rate ?? null, experience_years ?? null, skillsArr, portfolio_urls ?? [], portfolio_videos ?? []]
     );
     res.status(201).json({ success: true, data: rows[0] });
   } catch (err) {

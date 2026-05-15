@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Dark background -->
+  <rect width="32" height="32" rx="6" fill="#1a1310"/>
+  <!-- Film strip body -->
+  <rect x="4" y="10" width="24" height="12" rx="2" fill="#F59E0B"/>
+  <!-- Film holes - left -->
+  <rect x="6" y="12" width="3" height="3" rx="0.5" fill="#1a1310"/>
+  <rect x="6" y="17" width="3" height="3" rx="0.5" fill="#1a1310"/>
+  <!-- Film holes - right -->
+  <rect x="23" y="12" width="3" height="3" rx="0.5" fill="#1a1310"/>
+  <rect x="23" y="17" width="3" height="3" rx="0.5" fill="#1a1310"/>
+  <!-- Center frame divider -->
+  <rect x="12" y="11" width="1" height="10" fill="#1a1310" opacity="0.4"/>
+  <rect x="19" y="11" width="1" height="10" fill="#1a1310" opacity="0.4"/>
+  <!-- Top/bottom film perforations -->
+  <rect x="8" y="7" width="3" height="2" rx="0.5" fill="#F59E0B" opacity="0.6"/>
+  <rect x="14" y="7" width="3" height="2" rx="0.5" fill="#F59E0B" opacity="0.6"/>
+  <rect x="20" y="7" width="3" height="2" rx="0.5" fill="#F59E0B" opacity="0.6"/>
+  <rect x="8" y="23" width="3" height="2" rx="0.5" fill="#F59E0B" opacity="0.6"/>
+  <rect x="14" y="23" width="3" height="2" rx="0.5" fill="#F59E0B" opacity="0.6"/>
+  <rect x="20" y="23" width="3" height="2" rx="0.5" fill="#F59E0B" opacity="0.6"/>
+</svg>

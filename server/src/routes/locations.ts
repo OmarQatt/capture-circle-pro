@@ -21,7 +21,9 @@ router.get('/my-locations', authenticate, async (req, res: Response<ApiResponse<
 router.get('/', async (_req, res: Response<ApiResponse<Location[]>>) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM locations WHERE status = 'approved' ORDER BY created_at DESC"
+      `SELECT l.*, u.first_name, u.last_name, u.avatar_url
+       FROM locations l JOIN users u ON l.user_id = u.id
+       WHERE l.status = 'approved' ORDER BY l.created_at DESC`
     );
     res.json({ success: true, data: rows, meta: { total: rows.length } });
   } catch (err) {
@@ -48,13 +50,13 @@ router.get('/:id', async (req, res: Response<ApiResponse<any>>) => {
 
 router.post('/', authenticate, async (req, res: Response<ApiResponse<Location>>) => {
   try {
-    const { name, description, address, city, country, category, price_per_day, price_per_hour, images, latitude, longitude } = req.body;
+    const { name, description, address, city, country, category, price_per_6hours, price_per_12hours, price_per_day, images, latitude, longitude } = req.body;
     if (!name) return res.status(400).json({ success: false, error: 'Name is required' });
 
     const { rows } = await pool.query(
-      `INSERT INTO locations (user_id,name,description,address,city,country,category,price_per_day,price_per_hour,images,latitude,longitude,status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending') RETURNING *`,
-      [req.user!.userId, name, description ?? null, address ?? null, city ?? null, country ?? null, category ?? null, price_per_day ?? null, price_per_hour ?? null, images ?? [], latitude ?? null, longitude ?? null]
+      `INSERT INTO locations (user_id,name,description,address,city,country,category,price_per_6hours,price_per_12hours,price_per_day,images,latitude,longitude,status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending') RETURNING *`,
+      [req.user!.userId, name, description ?? null, address ?? null, city ?? null, country ?? null, category ?? null, price_per_6hours ?? null, price_per_12hours ?? null, price_per_day ?? null, images ?? [], latitude ?? null, longitude ?? null]
     );
     res.status(201).json({ success: true, data: rows[0] });
   } catch (err) {
@@ -69,7 +71,7 @@ router.patch('/:id', authenticate, async (req, res: Response<ApiResponse<Locatio
     if (existing.length === 0) return res.status(404).json({ success: false, error: 'Location not found' });
     if (existing[0].user_id !== req.user!.userId) return res.status(403).json({ success: false, error: 'Unauthorized' });
 
-    const allowed = ['name','description','address','city','country','category','price_per_day','price_per_hour','images','latitude','longitude'];
+    const allowed = ['name','description','address','city','country','category','price_per_6hours','price_per_12hours','price_per_day','images','latitude','longitude'];
     const fields = Object.keys(req.body).filter(k => allowed.includes(k));
     if (fields.length === 0) return res.status(400).json({ success: false, error: 'No valid fields to update' });
 

@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import api from "@/integrations/api/client";
+import ImageUpload from "@/components/ImageUpload";
 
 const roles = [
   { v: "director_of_photography", l: "Director of Photography (DP)" },
@@ -32,6 +33,7 @@ const AddCrewDialog = () => {
     role: "camera_operator", bio: "", experience_years: "",
     daily_rate: "", skills: "",
   });
+  const [portfolio, setPortfolio] = useState<string[]>([]);
 
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -45,8 +47,10 @@ const AddCrewDialog = () => {
         experience_years: form.experience_years ? Number(form.experience_years) : 0,
         daily_rate: form.daily_rate ? Number(form.daily_rate) : null,
         skills: form.skills,
+        portfolio_urls: portfolio,
       });
-      toast.success("Crew profile created successfully!");
+      toast.success("Crew role added successfully!");
+      setPortfolio([]);
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["crew_profiles"] });
     } catch (err: any) {
@@ -59,10 +63,10 @@ const AddCrewDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline"><Plus className="h-4 w-4 mr-2" /> Crew Profile</Button>
+        <Button variant="outline"><Plus className="h-4 w-4 mr-2" /> Add Crew Role</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Create Crew Profile</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Add Crew Role</DialogTitle></DialogHeader>
         <div className="space-y-4 mt-2">
           <div>
             <Label>Role</Label>
@@ -83,6 +87,7 @@ const AddCrewDialog = () => {
             <div><Label>Years of Experience</Label><Input type="number" value={form.experience_years} onChange={(e) => set("experience_years", e.target.value)} /></div>
             <div><Label>Daily Rate ($)</Label><Input type="number" value={form.daily_rate} onChange={(e) => set("daily_rate", e.target.value)} /></div>
           </div>
+          <ImageUpload urls={portfolio} onChange={setPortfolio} max={1} label="Profile Photo" />
           <Button onClick={submit} disabled={loading} className="w-full bg-gradient-gold text-primary-foreground font-semibold">
             {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Save Profile
           </Button>

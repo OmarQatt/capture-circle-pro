@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import api from "@/integrations/api/client";
+import ImageUpload from "@/components/ImageUpload";
+import VideoUpload from "@/components/VideoUpload";
 
 const AddTalentDialog = () => {
   const { user } = useAuth();
@@ -17,10 +19,12 @@ const AddTalentDialog = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    bio: "", profile_type: "model", gender: "female", age: "",
+    bio: "", profile_type: "model", age: "",
     skin_tone: "medium", height: "", weight: "",
     experience_years: "", hourly_rate: "", daily_rate: "",
   });
+  const [portfolio, setPortfolio] = useState<string[]>([]);
+  const [videos, setVideos] = useState<string[]>([]);
 
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -31,7 +35,6 @@ const AddTalentDialog = () => {
       await api.post("/api/talent", {
         profile_type: form.profile_type,
         bio: form.bio.trim() || null,
-        gender: form.gender,
         age: form.age ? Number(form.age) : null,
         skin_tone: form.skin_tone,
         height: form.height ? form.height : null,
@@ -39,8 +42,12 @@ const AddTalentDialog = () => {
         experience_years: form.experience_years ? Number(form.experience_years) : 0,
         hourly_rate: form.hourly_rate ? Number(form.hourly_rate) : null,
         daily_rate: form.daily_rate ? Number(form.daily_rate) : null,
+        portfolio_urls: portfolio,
+        portfolio_videos: videos,
       });
       toast.success("Talent profile created successfully!");
+      setPortfolio([]);
+      setVideos([]);
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["talent_profiles"] });
     } catch (err: any) {
@@ -73,18 +80,9 @@ const AddTalentDialog = () => {
             <Label>Bio</Label>
             <Textarea value={form.bio} onChange={(e) => set("bio", e.target.value)} rows={3} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Gender</Label>
-              <Select value={form.gender} onValueChange={(v) => set("gender", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="male">Male</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>Age</Label><Input type="number" value={form.age} onChange={(e) => set("age", e.target.value)} /></div>
+          <div>
+            <Label>Age</Label>
+            <Input type="number" value={form.age} onChange={(e) => set("age", e.target.value)} />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
@@ -107,6 +105,8 @@ const AddTalentDialog = () => {
             <div><Label>Hourly ($)</Label><Input type="number" value={form.hourly_rate} onChange={(e) => set("hourly_rate", e.target.value)} /></div>
             <div><Label>Daily ($)</Label><Input type="number" value={form.daily_rate} onChange={(e) => set("daily_rate", e.target.value)} /></div>
           </div>
+          <ImageUpload urls={portfolio} onChange={setPortfolio} max={10} label="Portfolio Photos" />
+          <VideoUpload urls={videos} onChange={setVideos} max={5} />
           <Button onClick={submit} disabled={loading} className="w-full bg-gradient-gold text-primary-foreground font-semibold">
             {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Save Profile
           </Button>

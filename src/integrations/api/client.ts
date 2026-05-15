@@ -93,6 +93,28 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return json.data;
 }
 
+async function uploadFormData<T>(path: string, formData: FormData): Promise<T> {
+  const doUpload = async (token: string | null) => {
+    return fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+  };
+
+  let res = await doUpload(getToken());
+
+  if (res.status === 401) {
+    const newToken = await refreshAccessToken();
+    if (!newToken) throw new Error('Session expired');
+    res = await doUpload(newToken);
+  }
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Upload failed');
+  return json.data;
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: unknown) =>
@@ -100,6 +122,7 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  upload: <T>(path: string, formData: FormData) => uploadFormData<T>(path, formData),
   setTokens,
   clearTokens,
   getToken,

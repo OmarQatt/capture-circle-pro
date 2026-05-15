@@ -1,0 +1,275 @@
+{
+  "nav": {
+    "locations": "المواقع",
+    "equipment": "المعدات",
+    "models": "النماذج",
+    "crew": "طاقم العمل",
+    "dashboard": "لوحة التحكم",
+    "myProfile": "ملفي الشخصي",
+    "signOut": "تسجيل الخروج",
+    "signIn": "تسجيل الدخول",
+    "getStarted": "ابدأ الآن",
+    "language": "EN"
+  },
+  "home": {
+    "badge": "سوق الإنتاج",
+    "heroLine1": "كل ما يحتاجه",
+    "heroLine2": "إنتاجك",
+    "heroDesc": "السوق الشامل الذي يربط صانعي الأفلام بالمواقع والمعدات والمواهب وطاقم العمل. احجز بثقة — كل إدراج تم التحقق منه.",
+    "startBooking": "ابدأ الحجز",
+    "exploreLocations": "استكشف المواقع",
+    "stats": {
+      "locations": "موقع",
+      "equipment": "معدة",
+      "talent": "موهبة",
+      "crew": "عضو طاقم"
+    },
+    "servicesLabel": "خدماتنا",
+    "servicesTitle": "الركائز الأربع للإنتاج",
+    "services": {
+      "locations": {
+        "title": "مواقع التصوير",
+        "desc": "اكتشف أماكن فريدة — استوديوهات، أسطح مبانٍ، فيلل، صحاري — تم التحقق منها من قِبل فريقنا."
+      },
+      "equipment": {
+        "title": "تأجير المعدات",
+        "desc": "كاميرات احترافية ومعدات إضاءة وصوت من شركات موثوقة."
+      },
+      "models": {
+        "title": "النماذج والكاستينج",
+        "desc": "تصفح المواهب حسب المظهر والخبرة والإتاحة لتصويرك القادم."
+      },
+      "crew": {
+        "title": "توظيف طاقم العمل",
+        "desc": "ابحث عن مديري التصوير ومساعدي الكاميرا والمصورين والمتخصصين — فلتر حسب الدور والإتاحة."
+      }
+    },
+    "howLabel": "كيف يعمل",
+    "howTitle": "بسيط وشفاف",
+    "steps": {
+      "01": {
+        "title": "تصفح وفلتر",
+        "desc": "ابحث عن مواقع ومعدات ومواهب وطاقم عمل باستخدام فلاتر متقدمة."
+      },
+      "02": {
+        "title": "تحقق من التوفر",
+        "desc": "شاهد التقويمات في الوقت الفعلي واختر تواريخ وأوقاتك المفضلة."
+      },
+      "03": {
+        "title": "احجز وادفع",
+        "desc": "أمّن حجزك بأسعار شفافة ورسوم مبنية على العمولة."
+      },
+      "04": {
+        "title": "صوّر وقيّم",
+        "desc": "أكمل إنتاجك واترك تقييمات للمجتمع."
+      }
+    },
+    "whyLabel": "لماذا بري برودكشن",
+    "whyTitle": "مبني على الثقة",
+    "features": {
+      "verified": {
+        "title": "إدراجات موثقة",
+        "desc": "كل موقع تتم مراجعته من قِبل فريق الإدارة قبل النشر."
+      },
+      "realtime": {
+        "title": "توفر فوري",
+        "desc": "تقويمات مباشرة حتى لا تحجز مرتين."
+      },
+      "reviews": {
+        "title": "تقييمات وآراء",
+        "desc": "تغذية راجعة من المجتمع على كل خدمة."
+      },
+      "protection": {
+        "title": "حماية المعدات",
+        "desc": "سياسة الأدلة الصورية تحمي كلا الطرفين."
+      }
+    },
+    "ctaTitle": "هل أنت مستعد",
+    "ctaHighlight": "للإنتاج",
+    "ctaTitleEnd": "؟",
+    "ctaDesc": "انضم إلى مئات المحترفين الذين يستخدمون بري برودكشن بالفعل لتبسيط مشاريعهم.",
+    "createAccount": "إنشاء حساب",
+    "browseServices": "تصفح الخدمات",
+    "browse": "تصفح"
+  },
+  "locations": {
+    "titleMain": "مواقع",
+    "titleHighlight": "التصوير",
+    "desc": "اكتشف مواقع تصوير موثقة لإنتاجك القادم.",
+    "searchPlaceholder": "ابحث عن مواقع...",
+    "allCities": "كل المدن",
+    "allTypes": "كل الأنواع",
+    "viewDetails": "عرض التفاصيل",
+    "viewProfile": "← عرض الملف الشخصي",
+    "empty": "لا توجد مواقع. كن أول من يضيف!",
+    "perDay": "/ يوم",
+    "per6h": "/ 6 ساعات",
+    "city": "المدينة",
+    "type": "النوع",
+    "types": {
+      "villa": "فيلا",
+      "studio": "استوديو",
+      "warehouse": "مستودع",
+      "beach": "شاطئ",
+      "historical": "تاريخي"
+    }
+  },
+  "equipment": {
+    "titleMain": "تأجير",
+    "titleHighlight": "المعدات",
+    "desc": "معدات احترافية من شركات موثقة.",
+    "searchPlaceholder": "ابحث عن معدات...",
+    "allCategories": "الكل",
+    "category": "الفئة",
+    "empty": "لا توجد معدات بعد.",
+    "perDay": "/يوم",
+    "categories": {
+      "camera": "كاميرا",
+      "lighting": "إضاءة",
+      "audio": "صوت",
+      "lens": "عدسة",
+      "stabilizer": "مثبّت"
+    }
+  },
+  "crew": {
+    "titleMain": "طاقم",
+    "titleHighlight": "الإنتاج",
+    "desc": "وظّف مديري تصوير ومساعدي كاميرا ومصورين ومتخصصين.",
+    "searchPlaceholder": "ابحث عن طاقم...",
+    "allRoles": "كل الأدوار",
+    "role": "الدور",
+    "empty": "لا يوجد أعضاء طاقم بعد.",
+    "yearsExp": "سنوات",
+    "perDay": "/يوم",
+    "viewProfile": "← عرض الملف الشخصي",
+    "roles": {
+      "camera_operator": "مشغّل كاميرا",
+      "director_of_photography": "مدير التصوير",
+      "first_ac": "مساعد مصور أول",
+      "second_ac": "مساعد مصور ثاني",
+      "third_ac": "مساعد مصور ثالث",
+      "photographer": "مصوّر فوتوغرافي",
+      "videographer": "مصوّر فيديو",
+      "gaffer": "مسؤول الإضاءة",
+      "sound_engineer": "مهندس صوت",
+      "editor": "مونتير",
+      "director": "مخرج"
+    }
+  },
+  "models": {
+    "titleMain": "النماذج و",
+    "titleHighlight": "الكاستينج",
+    "desc": "ابحث عن الموهبة المثالية لإنتاجك.",
+    "searchPlaceholder": "ابحث عن مواهب...",
+    "allGenders": "الكل",
+    "allSkinTones": "الكل",
+    "gender": "الجنس",
+    "skinTone": "لون البشرة",
+    "empty": "لا توجد نماذج بعد.",
+    "yearsExp": "سنوات خبرة",
+    "viewProfile": "← عرض الملف الشخصي",
+    "age": "العمر",
+    "genders": {
+      "male": "ذكر",
+      "female": "أنثى"
+    },
+    "skinTones": {
+      "light": "فاتح",
+      "medium": "متوسط",
+      "dark": "داكن"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "مرحباً بعودتك",
+      "subtitle": "سجّل الدخول إلى حسابك",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "example@example.com",
+      "password": "كلمة المرور",
+      "forgot": "نسيت كلمة المرور؟",
+      "submit": "تسجيل الدخول",
+      "noAccount": "ليس لديك حساب؟",
+      "signupLink": "سجّل الآن",
+      "verifyTitle": "تحقق من بريدك الإلكتروني",
+      "verifyDesc": "أرسلنا رابط تحقق إلى {{email}}. يرجى التحقق من صندوق الوارد والنقر على الرابط لتفعيل حسابك.",
+      "resend": "إعادة إرسال رسالة التحقق",
+      "backToLogin": "العودة لتسجيل الدخول"
+    },
+    "signup": {
+      "title": "إنشاء حساب",
+      "subtitle": "انضم إلى بري برودكشن وابدأ الحجز",
+      "firstName": "الاسم الأول",
+      "firstNamePlaceholder": "محمد",
+      "lastName": "اسم العائلة",
+      "lastNamePlaceholder": "أحمد",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "example@example.com",
+      "password": "كلمة المرور",
+      "submit": "إنشاء حساب",
+      "hasAccount": "لديك حساب بالفعل؟",
+      "loginLink": "تسجيل الدخول",
+      "checkEmailTitle": "تحقق من بريدك الإلكتروني",
+      "checkEmailDesc": "أرسلنا رابط تحقق إلى {{email}}. انقر على الرابط في البريد الإلكتروني لتفعيل حسابك.",
+      "alreadyVerified": "تم التحقق بالفعل؟",
+      "loginHere": "تسجيل الدخول"
+    }
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "welcome": "مرحباً بعودتك، {{name}}!",
+    "myBookings": "حجوزاتي",
+    "totalListings": "إجمالي الإدراجات",
+    "pendingReview": "قيد المراجعة",
+    "approved": "موافق عليه",
+    "rejected": "مرفوض",
+    "myListings": "إدراجاتي",
+    "myBookingsTab": "حجوزاتي",
+    "noListings": "لم تضف أي إدراجات بعد.",
+    "noBookings": "لا توجد حجوزات بعد.",
+    "type": "النوع",
+    "dates": "التواريخ",
+    "status": "الحالة",
+    "amount": "المبلغ",
+    "location": "موقع",
+    "locationCity": "موقع · {{city}}",
+    "equipmentItem": "معدة · {{brand}}",
+    "crewItem": "طاقم · {{years}} سنوات خبرة",
+    "talentItem": "موهبة · {{years}} سنوات خبرة",
+    "extensionTitle": "طلب تمديد",
+    "extensionBooking": "الحجز: {{type}} · {{start}} ← {{end}}",
+    "additionalHours": "الساعات الإضافية المطلوبة",
+    "messageToOwner": "رسالة للمالك (اختياري)",
+    "messagePlaceholder": "مثال: لا زلنا نصور المشهد الأخير…",
+    "cancel": "إلغاء",
+    "sendRequest": "إرسال الطلب",
+    "needMoreTime": "تحتاج مزيداً من الوقت",
+    "extensionPending": "طلب التمديد معلق…",
+    "extensionApproved": "+{{hours}} ساعة موافق عليها",
+    "extensionRejected": "تم رفض التمديد",
+    "extensionRequested": "تمديد: +{{hours}} ساعة مطلوبة",
+    "approveExt": "✓ موافقة +{{hours}} ساعة",
+    "rejectExt": "✗ رفض"
+  },
+  "chat": {
+    "title": "مساعد بري برودكشن",
+    "subtitle": "يرد فوراً عادةً",
+    "placeholder": "اكتب رسالة...",
+    "greeting": "مرحباً! 👋 أهلاً بك في بري برودكشن. كيف أستطيع مساعدتك؟",
+    "greetingUser": "مرحباً {{name}}! 👋 كيف أستطيع مساعدتك؟",
+    "fallback": "لست متأكداً من ذلك. يمكنك السؤال عن الحجوزات أو الإدراجات أو الأسعار أو التسجيل. أو تواصل معنا على support@preproduction.com او على رقم الهاتف : 07********",
+    "quickReplies": ["كيف أحجز؟", "أضف موقعك", "الأسعار والرسوم", "إنشاء حساب"],
+    "suggestions": "أسئلة مقترحة:"
+  },
+  "footer": {
+    "tagline": "السوق الخاص بمحترفي الإنتاج. ابحث عن مواقع ومعدات ومواهب وطاقم عمل.",
+    "services": "الخدمات",
+    "company": "الشركة",
+    "legal": "قانوني",
+    "about": "من نحن",
+    "contact": "اتصل بنا",
+    "policies": "السياسات",
+    "terms": "شروط الخدمة",
+    "privacy": "سياسة الخصوصية",
+    "rights": "جميع الحقوق محفوظة."
+  }
+}

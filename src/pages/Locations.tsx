@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Search, Loader2 } from "lucide-react";
+import { MapPin, Search, Loader2, User } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import api from "@/integrations/api/client";
 
 const fallbackImage = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80";
@@ -16,6 +17,7 @@ const Locations = () => {
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const { t } = useTranslation();
 
   const { data: locations = [], isLoading } = useQuery({
     queryKey: ["locations"],
@@ -36,30 +38,30 @@ const Locations = () => {
       <section className="border-b border-border bg-card/30 py-16">
         <div className="container">
           <h1 className="font-display text-4xl text-foreground sm:text-5xl">
-            Filming <span className="text-gradient-gold">Locations</span>
+            {t('locations.titleMain')} <span className="text-gradient-gold">{t('locations.titleHighlight')}</span>
           </h1>
-          <p className="mt-3 text-muted-foreground">Discover verified filming locations for your next production.</p>
+          <p className="mt-3 text-muted-foreground">{t('locations.desc')}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search locations..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder={t('locations.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} className="ps-10" />
             </div>
             <Select value={cityFilter} onValueChange={setCityFilter}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="City" /></SelectTrigger>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder={t('locations.city')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Cities</SelectItem>
+                <SelectItem value="all">{t('locations.allCities')}</SelectItem>
                 {cities.map((c: any) => <SelectItem key={c} value={c.toLowerCase()}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder={t('locations.type')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="villa">Villa</SelectItem>
-                <SelectItem value="studio">Studio</SelectItem>
-                <SelectItem value="warehouse">Warehouse</SelectItem>
-                <SelectItem value="beach">Beach</SelectItem>
-                <SelectItem value="historical">Historical</SelectItem>
+                <SelectItem value="all">{t('locations.allTypes')}</SelectItem>
+                <SelectItem value="villa">{t('locations.types.villa')}</SelectItem>
+                <SelectItem value="studio">{t('locations.types.studio')}</SelectItem>
+                <SelectItem value="warehouse">{t('locations.types.warehouse')}</SelectItem>
+                <SelectItem value="beach">{t('locations.types.beach')}</SelectItem>
+                <SelectItem value="historical">{t('locations.types.historical')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -71,7 +73,7 @@ const Locations = () => {
           {isLoading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : filtered.length === 0 ? (
-            <p className="text-center text-muted-foreground py-20">No locations found. Be the first to add one!</p>
+            <p className="text-center text-muted-foreground py-20">{t('locations.empty')}</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((loc: any) => (
@@ -79,23 +81,39 @@ const Locations = () => {
                   <Card className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
                     <div className="relative h-52 overflow-hidden">
                       <img src={loc.images?.[0] || fallbackImage} alt={loc.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
-                      <Badge className={`absolute top-3 right-3 ${loc.status === "approved" ? "bg-green-600" : "bg-amber-600"}`}>
+                      <Badge className={`absolute top-3 end-3 ${loc.status === "approved" ? "bg-green-600" : "bg-amber-600"}`}>
                         {loc.status}
                       </Badge>
                     </div>
                     <CardContent className="p-5">
-                      <div className="flex items-start justify-between">
+                      <h3 className="font-semibold text-foreground">{loc.name}</h3>
+                      <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5" /> {loc.city || t('locations.empty')}
+                      </p>
+                      <div className="mt-3 flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold text-foreground">{loc.name}</h3>
-                          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                            <MapPin className="h-3.5 w-3.5" /> {loc.city || "Unknown"}
-                          </p>
+                          {loc.price_per_6hours && (
+                            <p className="text-sm text-muted-foreground">${Number(loc.price_per_6hours)}<span className="text-xs"> {t('locations.per6h')}</span></p>
+                          )}
+                          <p className="text-lg font-semibold text-primary">${Number(loc.price_per_day) || 0}<span className="text-sm text-muted-foreground"> {t('locations.perDay')}</span></p>
                         </div>
+                        <Button size="sm" variant="outline">{t('locations.viewDetails')}</Button>
                       </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <p className="text-lg font-semibold text-primary">${Number(loc.price_per_day) || 0}<span className="text-sm text-muted-foreground">/day</span></p>
-                        <Button size="sm" variant="outline">View Details</Button>
-                      </div>
+                      {loc.user_id && (
+                        <Link
+                          to={`/profile/${loc.user_id}`}
+                          onClick={e => e.stopPropagation()}
+                          className="mt-3 flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors border-t border-border/50 pt-3"
+                        >
+                          <div className="h-5 w-5 rounded-full bg-muted overflow-hidden shrink-0">
+                            {loc.avatar_url
+                              ? <img src={loc.avatar_url} alt="" className="h-full w-full object-cover" />
+                              : <User className="h-3 w-3 m-auto mt-1 text-muted-foreground" />}
+                          </div>
+                          <span>{loc.first_name || t('locations.empty')} {loc.last_name || ""}</span>
+                          <span className="ms-auto text-primary">{t('locations.viewProfile')}</span>
+                        </Link>
+                      )}
                     </CardContent>
                   </Card>
                 </Link>
