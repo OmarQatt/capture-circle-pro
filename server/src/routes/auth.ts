@@ -61,7 +61,7 @@ router.post('/signup', async (req: Request, res: Response) => {
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await pool.query(
       `INSERT INTO users (email, password_hash, first_name, last_name, role, email_verified)
-       VALUES ($1,$2,$3,$4,$5,false) RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,true) RETURNING *`,
       [email, hash, first_name || null, last_name || null, role]
     );
     const user = rows[0] as User;
@@ -71,19 +71,7 @@ router.post('/signup', async (req: Request, res: Response) => {
       [user.id, first_name || null, last_name || null, role]
     );
 
-    // Generate and store verification token
-    const token = crypto.randomBytes(48).toString('hex');
-    await pool.query(
-      `INSERT INTO email_verification_tokens (user_id, token, expires_at)
-       VALUES ($1,$2, NOW() + INTERVAL '24 hours')`,
-      [user.id, token]
-    );
-
-    sendVerificationEmail(email, token).catch(err =>
-      console.error('Failed to send verification email:', err.message)
-    );
-
-    res.status(201).json({ success: true, data: { message: 'Check your email to verify your account.' } });
+    res.status(201).json({ success: true, data: { message: 'Account created successfully.' } });
   } catch (err: any) {
     console.error('Signup error:', err.message, err.detail, err.code);
     res.status(500).json({ success: false, error: err.message || 'Signup failed' });
