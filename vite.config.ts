@@ -7,6 +7,7 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
+     allowedHosts: ['capture-circle-pro.onrender.com'],
     port: 8080,
     hmr: {
       overlay: false,
