@@ -28,7 +28,7 @@ const ImageCarousel = ({ images, alt = "", className = "", onImageClick }: Props
       alt={alt}
       onError={handleError}
       className={`${className} ${onImageClick ? "cursor-zoom-in" : ""}`}
-      onClick={() => onImageClick?.(0)}
+      onClick={(e) => { if (onImageClick) { e.preventDefault(); e.stopPropagation(); onImageClick(0); } }}
     />
   );
 
@@ -52,7 +52,7 @@ const ImageCarousel = ({ images, alt = "", className = "", onImageClick }: Props
         alt={alt}
         onError={handleError}
         className={`${className} ${onImageClick ? "cursor-zoom-in" : ""}`}
-        onClick={() => onImageClick?.(current)}
+        onClick={(e) => { if (onImageClick) { e.preventDefault(); e.stopPropagation(); onImageClick(current); } }}
       />
       <button
         onClick={prev}
