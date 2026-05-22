@@ -54,7 +54,6 @@ const LocationDetail = () => {
                     <Badge variant="secondary">{location.category}</Badge>
                   </p>
                 </div>
-                <Badge className={location.status === "approved" ? "bg-green-600" : "bg-amber-600"}>{location.status}</Badge>
               </div>
 
               <Tabs defaultValue="details" className="mt-6">
