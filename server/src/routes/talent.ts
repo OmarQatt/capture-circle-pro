@@ -59,4 +59,40 @@ router.post('/', authenticate, async (req, res: Response<ApiResponse<TalentProfi
   }
 });
 
+router.patch('/:id', authenticate, async (req, res: Response<ApiResponse<TalentProfile>>) => {
+  try {
+    const { rows: existing } = await pool.query('SELECT user_id FROM talent_profiles WHERE id = $1', [req.params.id]);
+    if (existing.length === 0) return res.status(404).json({ success: false, error: 'Profile not found' });
+    if (existing[0].user_id !== req.user!.userId) return res.status(403).json({ success: false, error: 'Unauthorized' });
+
+    const allowed = ['bio', 'age', 'height', 'weight', 'skin_tone', 'daily_rate', 'hourly_rate', 'experience_years', 'skills', 'portfolio_urls', 'portfolio_videos'];
+    const fields = Object.keys(req.body).filter(k => allowed.includes(k));
+    if (fields.length === 0) return res.status(400).json({ success: false, error: 'No valid fields to update' });
+
+    const set = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
+    const vals = [...fields.map(f => req.body[f]), req.params.id];
+    const { rows } = await pool.query(
+      `UPDATE talent_profiles SET ${set}, status = 'pending', updated_at = NOW() WHERE id = $${fields.length + 1} RETURNING *`,
+      vals
+    );
+    res.json({ success: true, data: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to update talent profile' });
+  }
+});
+
+router.delete('/:id', authenticate, async (req, res: Response<ApiResponse<null>>) => {
+  try {
+    const { rows } = await pool.query('SELECT user_id FROM talent_profiles WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ success: false, error: 'Profile not found' });
+    if (rows[0].user_id !== req.user!.userId) return res.status(403).json({ success: false, error: 'Unauthorized' });
+    await pool.query('DELETE FROM talent_profiles WHERE id = $1', [req.params.id]);
+    res.json({ success: true, data: null });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to delete talent profile' });
+  }
+});
+
 export default router;

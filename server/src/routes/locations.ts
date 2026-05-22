@@ -78,7 +78,7 @@ router.patch('/:id', authenticate, async (req, res: Response<ApiResponse<Locatio
     const set = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
     const vals = [...fields.map(f => req.body[f]), req.params.id];
     const { rows } = await pool.query(
-      `UPDATE locations SET ${set}, updated_at = NOW() WHERE id = $${fields.length + 1} RETURNING *`,
+      `UPDATE locations SET ${set}, status = 'pending', updated_at = NOW() WHERE id = $${fields.length + 1} RETURNING *`,
       vals
     );
     res.json({ success: true, data: rows[0] });

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { MapPin, Camera, Users, Clapperboard, Star, ArrowRight, Shield, Clock, CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import MarqueeSection from "@/components/MarqueeSection";
 
 
 
@@ -66,6 +67,8 @@ const Index = () => {
       </section>
 
     
+
+      <MarqueeSection />
 
       {/* Services */}
       <section className="py-24">

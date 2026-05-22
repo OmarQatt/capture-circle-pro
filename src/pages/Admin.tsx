@@ -3,13 +3,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check, X, Shield, ExternalLink } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Check, X, Shield, ExternalLink, ChevronRight } from "lucide-react";
+import ImageLightbox from "@/components/ImageLightbox";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/integrations/api/client";
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const roleLabels: Record<string, string> = {
   director_of_photography: "Director of Photography",
@@ -31,17 +34,76 @@ const ApproveRejectButtons = ({
   </div>
 );
 
+const DetailModal = ({ item, type, onClose }: { item: any; type: string; onClose: () => void }) => {
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
+  const images = item.images || item.portfolio_urls || [];
+
+  return (
+    <>
+    {lightbox && <ImageLightbox images={lightbox.images} initialIndex={lightbox.index} onClose={() => setLightbox(null)} />}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-border bg-background p-6 space-y-4 shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-foreground text-lg capitalize">{type} Details</h3>
+          <button onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button>
+        </div>
+        {images.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {images.map((url: string, i: number) => (
+              <img key={i} src={url} alt="" className="h-24 w-24 object-cover rounded-lg cursor-zoom-in border border-border" onClick={() => setLightbox({ images, index: i })} />
+            ))}
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          {item.name && <div><span className="text-muted-foreground">Name</span><p className="font-medium">{item.name}</p></div>}
+          {(item.first_name || item.last_name) && <div><span className="text-muted-foreground">Name</span><p className="font-medium">{item.first_name} {item.last_name}</p></div>}
+          {item.email && <div><span className="text-muted-foreground">Email</span><p className="font-medium">{item.email}</p></div>}
+          {item.city && <div><span className="text-muted-foreground">City</span><p className="font-medium">{item.city}</p></div>}
+          {item.country && <div><span className="text-muted-foreground">Country</span><p className="font-medium">{item.country}</p></div>}
+          {item.address && <div className="col-span-2"><span className="text-muted-foreground">Address</span><p className="font-medium">{item.address}</p></div>}
+          {item.category && <div><span className="text-muted-foreground">Category</span><p className="font-medium capitalize">{item.category}</p></div>}
+          {item.role && <div><span className="text-muted-foreground">Role</span><p className="font-medium">{roleLabels[item.role] || item.role}</p></div>}
+          {item.profile_type && <div><span className="text-muted-foreground">Type</span><p className="font-medium capitalize">{item.profile_type}</p></div>}
+          {item.gender && <div><span className="text-muted-foreground">Gender</span><p className="font-medium capitalize">{item.gender}</p></div>}
+          {item.age && <div><span className="text-muted-foreground">Age</span><p className="font-medium">{item.age}</p></div>}
+          {item.height && <div><span className="text-muted-foreground">Height</span><p className="font-medium">{item.height} cm</p></div>}
+          {item.weight && <div><span className="text-muted-foreground">Weight</span><p className="font-medium">{item.weight} kg</p></div>}
+          {item.skin_tone && <div><span className="text-muted-foreground">Skin Tone</span><p className="font-medium capitalize">{item.skin_tone}</p></div>}
+          {item.brand && <div><span className="text-muted-foreground">Brand</span><p className="font-medium">{item.brand}</p></div>}
+          {item.condition && <div><span className="text-muted-foreground">Condition</span><p className="font-medium capitalize">{item.condition}</p></div>}
+          {item.experience_years !== undefined && <div><span className="text-muted-foreground">Experience</span><p className="font-medium">{item.experience_years} yrs</p></div>}
+          {item.price_per_day && <div><span className="text-muted-foreground">Price/Day</span><p className="font-medium text-primary">${Number(item.price_per_day)}</p></div>}
+          {item.price_per_6hours && <div><span className="text-muted-foreground">Price/6h</span><p className="font-medium text-primary">${Number(item.price_per_6hours)}</p></div>}
+          {item.price_per_12hours && <div><span className="text-muted-foreground">Price/12h</span><p className="font-medium text-primary">${Number(item.price_per_12hours)}</p></div>}
+          {item.daily_rate && <div><span className="text-muted-foreground">Daily Rate</span><p className="font-medium text-primary">${Number(item.daily_rate)}</p></div>}
+          {item.hourly_rate && <div><span className="text-muted-foreground">Hourly Rate</span><p className="font-medium text-primary">${Number(item.hourly_rate)}</p></div>}
+        </div>
+        {item.bio && <div className="text-sm"><span className="text-muted-foreground">Bio</span><p className="mt-1 text-foreground">{item.bio}</p></div>}
+        {item.description && <div className="text-sm"><span className="text-muted-foreground">Description</span><p className="mt-1 text-foreground">{item.description}</p></div>}
+        {item.skills?.length > 0 && (
+          <div className="text-sm"><span className="text-muted-foreground">Skills</span>
+            <div className="mt-1 flex flex-wrap gap-1">{item.skills.map((s: string) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}</div>
+          </div>
+        )}
+      </div>
+    </div>
+    </>
+  );
+};
+
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [detail, setDetail] = useState<{ item: any; type: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
-    if (!authLoading && user && user.role !== "admin") navigate("/dashboard");
+    if (!authLoading && user && user.role !== "admin" && user.role !== "super_admin") navigate("/dashboard");
   }, [authLoading, user, navigate]);
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isSuperAdmin = user?.role === "super_admin";
 
   const { data: pendingLocations = [], isLoading: locLoading } = useQuery({
     queryKey: ["admin-pending-locations"],
@@ -80,9 +142,9 @@ const Admin = () => {
         api.patch(`/api/admin/${endpoint}/${id}/status`, { status }),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [queryKey] });
-        toast({ title: "Status updated" });
+        toast.success("Status updated");
       },
-      onError: (err: any) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+      onError: (err: any) => toast.error("Failed: " + err.message),
     });
 
   const locationMutation = makeStatusMutation("locations", "admin-pending-locations");
@@ -90,11 +152,32 @@ const Admin = () => {
   const crewMutation = makeStatusMutation("crew", "admin-pending-crew");
   const talentMutation = makeStatusMutation("talent", "admin-pending-talent");
 
+  const roleMutation = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) =>
+      api.patch(`/api/admin/users/${id}/role`, { role }),
+    onMutate: async ({ id, role }) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-users"] });
+      const previousUsers = queryClient.getQueryData(["admin-users"]);
+      queryClient.setQueryData(["admin-users"], (old: any[]) =>
+        (old || []).map((u: any) => u.id === id ? { ...u, role } : u)
+      );
+      return { previousUsers };
+    },
+    onError: (err: any, _vars, context: any) => {
+      queryClient.setQueryData(["admin-users"], context?.previousUsers);
+      toast.error("Failed: " + err.message);
+    },
+    onSuccess: () => toast.success("Role updated"),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
   if (authLoading) return <Layout><div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></Layout>;
 
   const totalPending = pendingLocations.length + pendingEquipment.length + pendingCrew.length + pendingTalent.length;
 
   return (
+    <>
+    {detail && <DetailModal item={detail.item} type={detail.type} onClose={() => setDetail(null)} />}
     <Layout>
       <div className="container py-8">
         <div className="flex items-center gap-3 mb-8">
@@ -158,12 +241,12 @@ const Admin = () => {
                         </tr></thead>
                         <tbody>
                           {pendingLocations.map((loc: any) => (
-                            <tr key={loc.id} className="border-b border-border/50 hover:bg-muted/30">
-                              <td className="p-4 font-medium text-foreground">{loc.name}</td>
+                            <tr key={loc.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setDetail({ item: loc, type: "location" })}>
+                              <td className="p-4 font-medium text-foreground flex items-center gap-1">{loc.name}<ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /></td>
                               <td className="p-4 text-muted-foreground">{loc.city}</td>
                               <td className="p-4 text-muted-foreground">{loc.first_name} {loc.last_name}</td>
                               <td className="p-4 text-primary">${Number(loc.price_per_day) || 0}</td>
-                              <td className="p-4">
+                              <td className="p-4" onClick={e => e.stopPropagation()}>
                                 <ApproveRejectButtons
                                   loading={locationMutation.isPending}
                                   onApprove={() => locationMutation.mutate({ id: loc.id, status: "approved" })}
@@ -198,12 +281,12 @@ const Admin = () => {
                         </tr></thead>
                         <tbody>
                           {pendingEquipment.map((eq: any) => (
-                            <tr key={eq.id} className="border-b border-border/50 hover:bg-muted/30">
-                              <td className="p-4 font-medium text-foreground">{eq.name}</td>
+                            <tr key={eq.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setDetail({ item: eq, type: "equipment" })}>
+                              <td className="p-4 font-medium text-foreground flex items-center gap-1">{eq.name}<ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /></td>
                               <td className="p-4 text-muted-foreground capitalize">{eq.category}</td>
                               <td className="p-4 text-muted-foreground">{eq.first_name} {eq.last_name}</td>
                               <td className="p-4 text-primary">${Number(eq.daily_rate) || 0}</td>
-                              <td className="p-4">
+                              <td className="p-4" onClick={e => e.stopPropagation()}>
                                 <ApproveRejectButtons
                                   loading={equipmentMutation.isPending}
                                   onApprove={() => equipmentMutation.mutate({ id: eq.id, status: "approved" })}
@@ -238,12 +321,12 @@ const Admin = () => {
                         </tr></thead>
                         <tbody>
                           {pendingCrew.map((c: any) => (
-                            <tr key={c.id} className="border-b border-border/50 hover:bg-muted/30">
-                              <td className="p-4 font-medium text-foreground">{c.first_name} {c.last_name}</td>
+                            <tr key={c.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setDetail({ item: c, type: "crew" })}>
+                              <td className="p-4 font-medium text-foreground flex items-center gap-1">{c.first_name} {c.last_name}<ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /></td>
                               <td className="p-4 text-muted-foreground">{roleLabels[c.role] || c.role}</td>
                               <td className="p-4 text-muted-foreground">{c.email}</td>
                               <td className="p-4 text-muted-foreground">{c.experience_years || 0} yrs</td>
-                              <td className="p-4">
+                              <td className="p-4" onClick={e => e.stopPropagation()}>
                                 <ApproveRejectButtons
                                   loading={crewMutation.isPending}
                                   onApprove={() => crewMutation.mutate({ id: c.id, status: "approved" })}
@@ -278,12 +361,12 @@ const Admin = () => {
                         </tr></thead>
                         <tbody>
                           {pendingTalent.map((t: any) => (
-                            <tr key={t.id} className="border-b border-border/50 hover:bg-muted/30">
-                              <td className="p-4 font-medium text-foreground">{t.first_name} {t.last_name}</td>
+                            <tr key={t.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setDetail({ item: t, type: "talent" })}>
+                              <td className="p-4 font-medium text-foreground flex items-center gap-1">{t.first_name} {t.last_name}<ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /></td>
                               <td className="p-4"><Badge variant="secondary" className="capitalize">{t.profile_type}</Badge></td>
                               <td className="p-4 text-muted-foreground capitalize">{t.gender || "—"}</td>
                               <td className="p-4 text-muted-foreground">{t.email}</td>
-                              <td className="p-4">
+                              <td className="p-4" onClick={e => e.stopPropagation()}>
                                 <ApproveRejectButtons
                                   loading={talentMutation.isPending}
                                   onApprove={() => talentMutation.mutate({ id: t.id, status: "approved" })}
@@ -343,17 +426,46 @@ const Admin = () => {
                         <thead><tr className="border-b border-border text-sm text-muted-foreground">
                           <th className="p-4 text-left font-medium">Name</th>
                           <th className="p-4 text-left font-medium">Email</th>
-                          <th className="p-4 text-left font-medium">Role</th>
+                          <th className="p-4 text-left font-medium">Gender</th>
+                          <th className="p-4 text-left font-medium">Verified</th>
                           <th className="p-4 text-left font-medium">Joined</th>
+                          <th className="p-4 text-left font-medium">Role</th>
                           <th className="p-4 text-right font-medium">Profile</th>
                         </tr></thead>
                         <tbody>
                           {allUsers.map((u: any) => (
                             <tr key={u.id} className="border-b border-border/50 hover:bg-muted/30">
                               <td className="p-4 font-medium text-foreground">{u.first_name} {u.last_name}</td>
-                              <td className="p-4 text-muted-foreground">{u.email}</td>
-                              <td className="p-4"><Badge variant="secondary">{u.role}</Badge></td>
-                              <td className="p-4 text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
+                              <td className="p-4 text-muted-foreground text-sm">{u.email}</td>
+                              <td className="p-4 text-muted-foreground capitalize text-sm">{u.gender || "—"}</td>
+                              <td className="p-4">
+                                <Badge variant={u.email_verified ? "default" : "secondary"} className="text-xs">
+                                  {u.email_verified ? "Yes" : "No"}
+                                </Badge>
+                              </td>
+                              <td className="p-4 text-muted-foreground text-sm">{new Date(u.created_at).toLocaleDateString()}</td>
+                              <td className="p-4">
+                                {isSuperAdmin && u.role !== "super_admin" && u.id !== user?.id ? (
+                                  <Select
+                                    value={u.role}
+                                    onValueChange={(role) => roleMutation.mutate({ id: u.id, role })}
+                                    disabled={roleMutation.isPending}
+                                  >
+                                    <SelectTrigger className="h-7 text-xs w-36">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {["user", "client", "location_owner", "equipment_provider", "model", "crew", "admin"].map(r => (
+                                        <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Badge variant={u.role === "admin" || u.role === "super_admin" ? "default" : "secondary"} className="text-xs">
+                                    {u.role}
+                                  </Badge>
+                                )}
+                              </td>
                               <td className="p-4 text-right">
                                 <Link to={`/profile/${u.id}`}>
                                   <Button size="sm" variant="outline" className="gap-1.5">
@@ -373,6 +485,7 @@ const Admin = () => {
         </Tabs>
       </div>
     </Layout>
+    </>
   );
 };
 

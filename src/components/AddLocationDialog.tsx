@@ -44,6 +44,10 @@ const AddLocationDialog = () => {
       toast.error("Please fill in at least the name and city.");
       return;
     }
+    if (!form.price_per_6hours && !form.price_per_12hours && !form.price_per_day) {
+      toast.error("Please enter at least one price (6h, 12h, or per day).");
+      return;
+    }
     setLoading(true);
     try {
       await api.post("/api/locations", {
@@ -75,7 +79,7 @@ const AddLocationDialog = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="bg-gradient-gold text-primary-foreground font-semibold">
-          <Plus className="h-4 w-4 mr-2" /> Add Listing
+          <Plus className="h-4 w-4 mr-2" /> Add Location
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -113,7 +117,7 @@ const AddLocationDialog = () => {
             </Select>
           </div>
           <div>
-            <Label className="text-sm text-muted-foreground mb-2 block">Pricing</Label>
+            <Label className="text-sm text-muted-foreground mb-2 block">Pricing <span className="text-red-500">*</span> <span className="text-xs">(at least one)</span></Label>
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label htmlFor="loc-pp6h" className="text-xs">6 Hours ($)</Label>

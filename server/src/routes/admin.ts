@@ -4,7 +4,7 @@ import { authenticate, requireRole } from '../middleware/authenticate.js';
 import type { ApiResponse } from '../types/index.js';
 
 const router = Router();
-router.use(authenticate, requireRole('admin'));
+router.use(authenticate, requireRole('admin', 'super_admin'));
 
 // ── Locations ────────────────────────────────────────────────────────────────
 router.get('/locations/pending', async (_req, res: Response<ApiResponse<any[]>>) => {
@@ -149,12 +149,36 @@ router.get('/bookings', async (req, res: Response<ApiResponse<any[]>>) => {
 router.get('/users', async (_req, res: Response<ApiResponse<any[]>>) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, email, first_name, last_name, role, created_at FROM users ORDER BY created_at DESC'
+      `SELECT id, email, first_name, last_name, phone, gender, avatar_url, role, email_verified, created_at
+       FROM users ORDER BY created_at DESC`
     );
     res.json({ success: true, data: rows, meta: { total: rows.length } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: 'Failed to fetch users' });
+  }
+});
+
+router.patch('/users/:id/role', async (req, res: Response<ApiResponse<any>>) => {
+  if (req.user?.role !== 'super_admin')
+    return res.status(403).json({ success: false, error: 'Only super admins can change user roles' });
+  try {
+    const { role } = req.body;
+    const allowed = ['user', 'client', 'location_owner', 'equipment_provider', 'model', 'crew', 'admin'];
+    if (!allowed.includes(role))
+      return res.status(400).json({ success: false, error: 'Invalid role' });
+    if (req.params.id === req.user.userId)
+      return res.status(400).json({ success: false, error: 'Cannot change your own role' });
+    const { rows } = await pool.query(
+      `UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2
+       RETURNING id, email, first_name, last_name, role`,
+      [role, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ success: false, error: 'User not found' });
+    res.json({ success: true, data: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to update role' });
   }
 });
 

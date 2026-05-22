@@ -2,15 +2,19 @@ import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, DollarSign, TrendingUp, Loader2, MapPin, Camera, Briefcase, User, Clock, AlertTriangle, Timer } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, Loader2, MapPin, Camera, Briefcase, User, Clock, AlertTriangle, Timer, CalendarOff, X, Pencil, Trash2, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import AddLocationDialog from "@/components/AddLocationDialog";
 import AddEquipmentDialog from "@/components/AddEquipmentDialog";
 import AddTalentDialog from "@/components/AddTalentDialog";
 import AddCrewDialog from "@/components/AddCrewDialog";
+import EditLocationDialog from "@/components/EditLocationDialog";
+import EditEquipmentDialog from "@/components/EditEquipmentDialog";
+import EditCrewDialog from "@/components/EditCrewDialog";
+import EditTalentDialog from "@/components/EditTalentDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/integrations/api/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,8 +41,9 @@ const ApprovalBadge = ({ status }: { status: string }) => {
   }
 };
 
-const ListingRow = ({ icon: Icon, title, subtitle, status }: {
+const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete }: {
   icon: any; title: string; subtitle: string; status: string;
+  onEdit?: () => void; onDelete?: () => void;
 }) => (
   <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/20">
     <div className="flex items-center gap-3 min-w-0">
@@ -50,23 +55,38 @@ const ListingRow = ({ icon: Icon, title, subtitle, status }: {
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </div>
     </div>
-    <ApprovalBadge status={status} />
+    <div className="flex items-center gap-2 shrink-0">
+      {onEdit && (
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onEdit}>
+          <Pencil className="h-3 w-3" /> Edit
+        </Button>
+      )}
+      {onDelete && (
+        <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-500/30 px-2" onClick={onDelete}>
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      )}
+      <ApprovalBadge status={status} />
+    </div>
   </div>
 );
 
 const ExtensionRequestModal = ({ booking, onClose }: { booking: any; onClose: () => void }) => {
   const qc = useQueryClient();
-  const [hours, setHours] = useState("1");
+  const [amount, setAmount] = useState("1");
+  const [unit, setUnit] = useState<"hours" | "days">("hours");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
 
+  const totalHours = unit === "days" ? Number(amount) * 24 : Number(amount);
+
   const submit = async () => {
-    if (!hours || Number(hours) < 1) { toast.error("Enter at least 1 hour"); return; }
+    if (!amount || Number(amount) < 1) { toast.error(unit === "hours" ? "Enter at least 1 hour" : "Enter at least 1 day"); return; }
     setLoading(true);
     try {
       const res: any = await api.post(`/api/bookings/${booking.id}/request-extension`, {
-        hours: Number(hours), note: note.trim() || null,
+        hours: totalHours, note: note.trim() || null,
       });
       if ((res as any)?.warning) {
         toast.warning("Request sent. Note: another booking exists on that day — owner will decide.");
@@ -97,8 +117,36 @@ const ExtensionRequestModal = ({ booking, onClose }: { booking: any; onClose: ()
           })}
         </p>
         <div>
-          <Label>{t('dashboard.additionalHours')}</Label>
-          <Input type="number" min={1} max={12} value={hours} onChange={e => setHours(e.target.value)} className="mt-1" />
+          <Label>Additional Time Needed</Label>
+          <div className="mt-1 flex gap-2">
+            <Input
+              type="number"
+              min={1}
+              max={unit === "hours" ? 23 : 30}
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              className="flex-1"
+            />
+            <div className="flex rounded-md border border-border overflow-hidden shrink-0">
+              <button
+                type="button"
+                onClick={() => { setUnit("hours"); setAmount("1"); }}
+                className={`px-3 py-2 text-sm transition-colors ${unit === "hours" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
+              >
+                Hours
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUnit("days"); setAmount("1"); }}
+                className={`px-3 py-2 text-sm transition-colors ${unit === "days" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"}`}
+              >
+                Days
+              </button>
+            </div>
+          </div>
+          {unit === "days" && Number(amount) >= 1 && (
+            <p className="mt-1 text-xs text-muted-foreground">= {totalHours} hours total</p>
+          )}
         </div>
         <div>
           <Label>{t('dashboard.messageToOwner')}</Label>
@@ -115,40 +163,153 @@ const ExtensionRequestModal = ({ booking, onClose }: { booking: any; onClose: ()
   );
 };
 
+const ExternalBookingDialog = ({ location, onClose }: { location: any; onClose: () => void }) => {
+  const qc = useQueryClient();
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [overlapping, setOverlapping] = useState<any[]>([]);
+  const [checkingAvail, setCheckingAvail] = useState(false);
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    if (!startDate || !endDate) { setOverlapping([]); return; }
+    setCheckingAvail(true);
+    api.get<any>(`/api/bookings/availability?service_id=${location.id}&start_date=${startDate}&end_date=${endDate}`)
+      .then(d => setOverlapping(d.overlapping || []))
+      .catch(() => setOverlapping([]))
+      .finally(() => setCheckingAvail(false));
+  }, [startDate, endDate, location.id]);
+
+  const submit = async () => {
+    if (!startDate || !endDate) { toast.error("Select both start and end dates"); return; }
+    if (new Date(endDate) < new Date(startDate)) { toast.error("End date must be after start date"); return; }
+    setLoading(true);
+    try {
+      await api.post("/api/bookings/external", { service_id: location.id, service_type: "location", start_date: startDate, end_date: endDate, note });
+      toast.success("Dates blocked successfully!");
+      qc.invalidateQueries({ queryKey: ["my-bookings"] });
+      onClose();
+    } catch (err: any) {
+      toast.error("Failed: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarOff className="h-5 w-5 text-amber-500" />
+            <h3 className="font-semibold text-foreground">Block Dates</h3>
+          </div>
+          <button onClick={onClose}><X className="h-4 w-4 text-muted-foreground" /></button>
+        </div>
+        <p className="text-sm text-muted-foreground">Block dates for <span className="font-medium text-foreground">{location.name}</span> so users can't book them.</p>
+        <div>
+          <Label>Start Date</Label>
+          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1" min={new Date().toISOString().slice(0, 10)} />
+        </div>
+        <div>
+          <Label>End Date</Label>
+          <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="mt-1" min={startDate || new Date().toISOString().slice(0, 10)} />
+        </div>
+        {checkingAvail && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Loader2 className="h-3 w-3 animate-spin" /> Checking existing bookings…
+          </p>
+        )}
+        {!checkingAvail && overlapping.length > 0 && (
+          <div className="flex gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-400">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">There {overlapping.length === 1 ? "is" : "are"} {overlapping.length} existing booking{overlapping.length > 1 ? "s" : ""} on these dates.</p>
+              <p className="mt-0.5 text-xs opacity-80">You can still block — existing confirmed bookings will remain active.</p>
+            </div>
+          </div>
+        )}
+        <div>
+          <Label>Note (optional)</Label>
+          <Input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g., Private event, maintenance..." className="mt-1" />
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={onClose}>{t('dashboard.cancel')}</Button>
+          <Button className="flex-1 bg-gradient-gold text-primary-foreground font-semibold" onClick={submit} disabled={loading}>
+            {loading && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Block Dates
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [extensionBooking, setExtensionBooking] = useState<any>(null);
+  const [blockLocation, setBlockLocation] = useState<any>(null);
+  const [editItem, setEditItem] = useState<{ type: string; item: any } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { t } = useTranslation();
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    try {
+      const { type, id } = deleteConfirm;
+      if (type === "location") await api.delete(`/api/locations/${id}`);
+      else if (type === "equipment") await api.delete(`/api/equipment/${id}`);
+      else if (type === "crew") await api.delete(`/api/crew/${id}`);
+      else if (type === "talent") await api.delete(`/api/talent/${id}`);
+      toast.success("Deleted successfully.");
+      qc.invalidateQueries({ queryKey: ["my-locations"] });
+      qc.invalidateQueries({ queryKey: ["my-equipment"] });
+      qc.invalidateQueries({ queryKey: ["my-crew"] });
+      qc.invalidateQueries({ queryKey: ["my-talent"] });
+      setDeleteConfirm(null);
+    } catch (err: any) {
+      toast.error("Failed to delete: " + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
   }, [authLoading, user, navigate]);
 
-  const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
+  const { data: bookingsRaw, isLoading: bookingsLoading } = useQuery({
     queryKey: ["my-bookings", user?.id],
     enabled: !!user,
     queryFn: () => api.get<any[]>("/api/bookings/my-bookings?limit=10"),
   });
+  const bookings: any[] = Array.isArray(bookingsRaw) ? bookingsRaw : [];
 
-  const { data: myLocations = [] } = useQuery({
+  const { data: locationsRaw } = useQuery({
     queryKey: ["my-locations", user?.id],
     enabled: !!user,
     queryFn: () => api.get<any[]>("/api/locations/my-locations"),
   });
+  const myLocations: any[] = Array.isArray(locationsRaw) ? locationsRaw : [];
 
-  const { data: myEquipment = [] } = useQuery({
+  const { data: equipmentRaw } = useQuery({
     queryKey: ["my-equipment", user?.id],
     enabled: !!user,
     queryFn: () => api.get<any[]>("/api/equipment/my-equipment"),
   });
+  const myEquipment: any[] = Array.isArray(equipmentRaw) ? equipmentRaw : [];
 
-  const { data: myCrew = [] } = useQuery({
+  const { data: crewRaw } = useQuery({
     queryKey: ["my-crew", user?.id],
     enabled: !!user,
     queryFn: () => api.get<any[]>("/api/crew/my-profiles"),
   });
+  const myCrew: any[] = Array.isArray(crewRaw) ? crewRaw : [];
 
   const { data: myTalent } = useQuery({
     queryKey: ["my-talent", user?.id],
@@ -183,6 +344,27 @@ const Dashboard = () => {
     {extensionBooking && (
       <ExtensionRequestModal booking={extensionBooking} onClose={() => setExtensionBooking(null)} />
     )}
+    {blockLocation && (
+      <ExternalBookingDialog location={blockLocation} onClose={() => setBlockLocation(null)} />
+    )}
+    {editItem?.type === "location" && <EditLocationDialog location={editItem.item} onClose={() => setEditItem(null)} />}
+    {editItem?.type === "equipment" && <EditEquipmentDialog equipment={editItem.item} onClose={() => setEditItem(null)} />}
+    {editItem?.type === "crew" && <EditCrewDialog crew={editItem.item} onClose={() => setEditItem(null)} />}
+    {editItem?.type === "talent" && <EditTalentDialog talent={editItem.item} onClose={() => setEditItem(null)} />}
+    {deleteConfirm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 space-y-4 shadow-xl">
+          <h3 className="font-semibold text-foreground">Delete {deleteConfirm.type}?</h3>
+          <p className="text-sm text-muted-foreground">Are you sure you want to delete <span className="font-medium text-foreground">{deleteConfirm.name}</span>? This cannot be undone.</p>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" className="flex-1" onClick={handleDelete} disabled={deleting}>
+              {deleting && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Delete
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
     <Layout>
       <div className="container py-8">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
@@ -195,6 +377,13 @@ const Dashboard = () => {
             <AddEquipmentDialog />
             <AddTalentDialog />
             <AddCrewDialog />
+            {(user?.role === "admin" || user?.role === "super_admin") && (
+              <Link to="/admin">
+                <Button variant="outline" className="gap-2 border-primary/50 text-primary hover:bg-primary/10">
+                  <Shield className="h-4 w-4" /> Admin Panel
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -264,13 +453,31 @@ const Dashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {myLocations.map((l: any) => (
-                      <ListingRow
-                        key={l.id}
-                        icon={MapPin}
-                        title={l.name}
-                        subtitle={t('dashboard.locationCity', { city: l.city || '—' })}
-                        status={l.status}
-                      />
+                      <div key={l.id} className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/20">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                            <MapPin className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground truncate">{l.name}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.locationCity', { city: l.city || '—' })}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                          {l.status === "approved" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-amber-500 border-amber-500/30" onClick={() => setBlockLocation(l)}>
+                              <CalendarOff className="h-3 w-3" /> Block
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setEditItem({ type: "location", item: l })}>
+                            <Pencil className="h-3 w-3" /> Edit
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-500/30 px-2" onClick={() => setDeleteConfirm({ type: "location", id: l.id, name: l.name })}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                          <ApprovalBadge status={l.status} />
+                        </div>
+                      </div>
                     ))}
 
                     {myEquipment.map((e: any) => (
@@ -280,6 +487,8 @@ const Dashboard = () => {
                         title={e.name}
                         subtitle={t('dashboard.equipmentItem', { brand: e.brand || e.category || '—' })}
                         status={e.approval_status || "pending"}
+                        onEdit={() => setEditItem({ type: "equipment", item: e })}
+                        onDelete={() => setDeleteConfirm({ type: "equipment", id: e.id, name: e.name })}
                       />
                     ))}
 
@@ -290,6 +499,8 @@ const Dashboard = () => {
                         title={t(`crew.roles.${c.role}`, { defaultValue: c.role })}
                         subtitle={t('dashboard.crewItem', { years: c.experience_years || 0 })}
                         status={c.status || "pending"}
+                        onEdit={() => setEditItem({ type: "crew", item: c })}
+                        onDelete={() => setDeleteConfirm({ type: "crew", id: c.id, name: t(`crew.roles.${c.role}`, { defaultValue: c.role }) })}
                       />
                     ))}
 
@@ -297,6 +508,8 @@ const Dashboard = () => {
                       <ListingRow
                         icon={User}
                         title={`${myTalent.profile_type?.charAt(0).toUpperCase()}${myTalent.profile_type?.slice(1)} Profile`}
+                        onEdit={() => setEditItem({ type: "talent", item: myTalent })}
+                        onDelete={() => setDeleteConfirm({ type: "talent", id: myTalent.id, name: `${myTalent.profile_type} profile` })}
                         subtitle={t('dashboard.talentItem', { years: myTalent.experience_years || 0 })}
                         status={myTalent.status || "pending"}
                       />

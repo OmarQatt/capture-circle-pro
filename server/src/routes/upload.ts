@@ -1,30 +1,41 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import path, { dirname, resolve } from 'path';
-import { fileURLToPath } from 'url';
+import path from 'path';
 import { randomBytes } from 'crypto';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { config } from 'dotenv';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { authenticate } from '../middleware/authenticate.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const uploadsDir = resolve(__dirname, '../../uploads');
+config({ path: resolve(__dirname, '../../../.env') });
 
 const router = Router();
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${Date.now()}-${randomBytes(6).toString('hex')}${ext}`);
-  },
-});
+// Lazy-init so env vars are guaranteed loaded before createClient runs
+let _supabase: SupabaseClient | null = null;
+const getSupabase = () => {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabase;
+};
+
+const BUCKET = 'uploads';
+
+// Keep files in memory (no disk write) — upload directly to Supabase Storage
+const memStorage = multer.memoryStorage();
 
 const imageUpload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  storage: memStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const allowed = /\.(jpeg|jpg|png|webp|gif)$/;
-    if (allowed.test(ext) && /image\//.test(file.mimetype)) {
+    if (/\.(jpeg|jpg|png|webp|gif)$/.test(ext) && /image\//.test(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed'));
@@ -33,12 +44,11 @@ const imageUpload = multer({
 });
 
 const videoUpload = multer({
-  storage,
-  limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB
+  storage: memStorage,
+  limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const allowed = /\.(mp4|mov|webm|avi|mkv)$/;
-    if (allowed.test(ext) && /video\//.test(file.mimetype)) {
+    if (/\.(mp4|mov|webm|avi|mkv)$/.test(ext) && /video\//.test(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('Only video files are allowed (mp4, mov, webm, avi, mkv)'));
@@ -46,23 +56,48 @@ const videoUpload = multer({
   },
 });
 
-const baseUrl = () =>
-  process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+async function uploadToSupabase(file: Express.Multer.File): Promise<string> {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const filename = `${Date.now()}-${randomBytes(6).toString('hex')}${ext}`;
+  const sb = getSupabase();
 
-router.post('/', authenticate, imageUpload.array('images', 10), (req: Request, res: Response) => {
-  const files = req.files as Express.Multer.File[];
-  if (!files || files.length === 0)
-    return res.status(400).json({ success: false, error: 'No files uploaded' });
-  const urls = files.map(f => `${baseUrl()}/uploads/${f.filename}`);
-  res.json({ success: true, data: { urls } });
+  const { error } = await sb.storage
+    .from(BUCKET)
+    .upload(filename, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false,
+    });
+
+  if (error) throw new Error(`Storage upload failed: ${error.message}`);
+
+  const { data } = sb.storage.from(BUCKET).getPublicUrl(filename);
+  return data.publicUrl;
+}
+
+router.post('/', authenticate, imageUpload.array('images', 10), async (req: Request, res: Response) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0)
+      return res.status(400).json({ success: false, error: 'No files uploaded' });
+    const urls = await Promise.all(files.map(uploadToSupabase));
+    res.json({ success: true, data: { urls } });
+  } catch (err: any) {
+    console.error('Upload error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Upload failed' });
+  }
 });
 
-router.post('/video', authenticate, videoUpload.array('videos', 5), (req: Request, res: Response) => {
-  const files = req.files as Express.Multer.File[];
-  if (!files || files.length === 0)
-    return res.status(400).json({ success: false, error: 'No files uploaded' });
-  const urls = files.map(f => `${baseUrl()}/uploads/${f.filename}`);
-  res.json({ success: true, data: { urls } });
+router.post('/video', authenticate, videoUpload.array('videos', 5), async (req: Request, res: Response) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0)
+      return res.status(400).json({ success: false, error: 'No files uploaded' });
+    const urls = await Promise.all(files.map(uploadToSupabase));
+    res.json({ success: true, data: { urls } });
+  } catch (err: any) {
+    console.error('Upload error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Upload failed' });
+  }
 });
 
 export default router;

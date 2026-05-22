@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import api from "@/integrations/api/client";
+import api, { resolveImageUrl } from "@/integrations/api/client";
 
 const fallbackAvatar = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80";
 
@@ -82,7 +82,7 @@ const Crew = () => {
                   <Card className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4">
-                        <img src={member.portfolio_urls?.[0] || member.avatar_url || fallbackAvatar} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" loading="lazy" />
+                        <img src={resolveImageUrl(member.portfolio_urls?.[0] || member.avatar_url || fallbackAvatar)} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).src = fallbackAvatar; }} />
                         <div className="flex-1">
                           <h3 className="font-semibold text-foreground">
                             {member.first_name || "—"} {member.last_name || ""}

@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Camera, Loader2, User } from "lucide-react";
+import ImageCarousel from "@/components/ImageCarousel";
+import ImageLightbox from "@/components/ImageLightbox";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +17,7 @@ const fallbackImage = "https://images.unsplash.com/photo-1585506942812-e72b29cef
 const Equipment = () => {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const { t } = useTranslation();
 
   const { data: equipment = [], isLoading } = useQuery({
@@ -29,6 +32,10 @@ const Equipment = () => {
   });
 
   return (
+    <>
+    {lightbox && (
+      <ImageLightbox images={lightbox.images} initialIndex={lightbox.index} onClose={() => setLightbox(null)} />
+    )}
     <Layout>
       <section className="border-b border-border bg-card/30 py-16">
         <div className="container">
@@ -67,8 +74,13 @@ const Equipment = () => {
               {filtered.map((eq) => (
                 <Card key={eq.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
                   <div className="relative h-52 overflow-hidden">
-                    <img src={eq.images?.[0] || fallbackImage} alt={eq.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
-                    <Badge className={`absolute top-3 end-3 ${eq.status === "available" ? "bg-green-600" : "bg-red-600"}`}>
+                    <ImageCarousel
+                      images={eq.images?.length ? eq.images : [fallbackImage]}
+                      alt={eq.name}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      onImageClick={(i) => setLightbox({ images: eq.images?.length ? eq.images : [fallbackImage], index: i })}
+                    />
+                    <Badge className={`absolute top-3 end-3 z-10 ${eq.status === "available" ? "bg-green-600" : "bg-red-600"}`}>
                       {eq.status}
                     </Badge>
                   </div>
@@ -102,6 +114,7 @@ const Equipment = () => {
         </div>
       </section>
     </Layout>
+    </>
   );
 };
 

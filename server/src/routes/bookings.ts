@@ -58,6 +58,37 @@ router.get('/:id', authenticate, async (req, res: Response<ApiResponse<Booking>>
   }
 });
 
+router.post('/external', authenticate, async (req, res: Response<ApiResponse<Booking>>) => {
+  try {
+    const { service_id, service_type, start_date, end_date, note } = req.body;
+    if (!service_id || !service_type || !start_date || !end_date)
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+
+    let ownerCheck;
+    if (service_type === 'location') {
+      ownerCheck = await pool.query('SELECT id FROM locations WHERE id = $1 AND user_id = $2', [service_id, req.user!.userId]);
+    } else if (service_type === 'equipment') {
+      ownerCheck = await pool.query('SELECT id FROM equipment WHERE id = $1 AND user_id = $2', [service_id, req.user!.userId]);
+    } else {
+      return res.status(400).json({ success: false, error: 'Invalid service type' });
+    }
+
+    if (ownerCheck.rows.length === 0)
+      return res.status(403).json({ success: false, error: 'You do not own this listing' });
+
+    const { rows } = await pool.query(
+      `INSERT INTO bookings (client_id,provider_id,service_id,service_type,start_date,end_date,notes,status,booking_type)
+       VALUES ($1,$1,$2,$3,$4,$5,$6,'confirmed','day') RETURNING *`,
+      [req.user!.userId, service_id, service_type, start_date, end_date,
+       note ? `[External] ${note}` : '[External booking]']
+    );
+    res.status(201).json({ success: true, data: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to create external booking' });
+  }
+});
+
 router.post('/', authenticate, async (req, res: Response<ApiResponse<Booking>>) => {
   try {
     const { provider_id, service_id, service_type, start_date, end_date, total_price, notes, booking_type } = req.body;

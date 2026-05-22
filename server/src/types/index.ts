@@ -6,7 +6,7 @@ export interface User {
   last_name: string | null;
   phone: string | null;
   avatar_url: string | null;
-  role: 'user' | 'client' | 'location_owner' | 'equipment_provider' | 'model' | 'crew' | 'admin';
+  role: 'user' | 'client' | 'location_owner' | 'equipment_provider' | 'model' | 'crew' | 'admin' | 'super_admin';
   email_verified: boolean;
   created_at: Date;
   updated_at: Date;

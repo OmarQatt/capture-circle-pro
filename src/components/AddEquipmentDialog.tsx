@@ -33,6 +33,7 @@ const AddEquipmentDialog = () => {
   const submit = async () => {
     if (!user) return;
     if (!form.name.trim()) return toast.error("Please enter equipment name");
+    if (!form.daily_rate || Number(form.daily_rate) <= 0) return toast.error("Please enter a daily rate");
     setLoading(true);
     try {
       await api.post("/api/equipment", {
@@ -95,7 +96,7 @@ const AddEquipmentDialog = () => {
             </div>
           </div>
           <div>
-            <Label>Daily Rate ($)</Label>
+            <Label>Daily Rate ($) <span className="text-red-500">*</span></Label>
             <Input type="number" min="0" value={form.daily_rate} onChange={(e) => set("daily_rate", e.target.value)} />
           </div>
           <ImageUpload urls={images} onChange={setImages} max={8} label="Equipment Photos" />

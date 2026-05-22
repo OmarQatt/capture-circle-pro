@@ -83,6 +83,12 @@ async function migrate() {
       ADD COLUMN IF NOT EXISTS extension_status VARCHAR(20) DEFAULT 'none',
       ADD COLUMN IF NOT EXISTS extension_note TEXT;
   `);
+  await pool.query(`
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+    ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (
+      role IN ('user','client','location_owner','equipment_provider','model','crew','admin','super_admin')
+    );
+  `);
 }
 
 migrate()

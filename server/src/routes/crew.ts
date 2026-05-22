@@ -66,7 +66,7 @@ router.patch('/:id', authenticate, async (req, res: Response<ApiResponse<CrewPro
     const set = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
     const vals = [...fields.map(f => req.body[f]), req.params.id];
     const { rows } = await pool.query(
-      `UPDATE crew_profiles SET ${set}, updated_at = NOW() WHERE id = $${fields.length + 1} RETURNING *`,
+      `UPDATE crew_profiles SET ${set}, status = 'pending', updated_at = NOW() WHERE id = $${fields.length + 1} RETURNING *`,
       vals
     );
     res.json({ success: true, data: rows[0] });

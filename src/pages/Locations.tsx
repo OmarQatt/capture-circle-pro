@@ -3,13 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { MapPin, Search, Loader2, User } from "lucide-react";
+import ImageCarousel from "@/components/ImageCarousel";
+import ImageLightbox from "@/components/ImageLightbox";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import api from "@/integrations/api/client";
+import api, { resolveImageUrl } from "@/integrations/api/client";
 
 const fallbackImage = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80";
 
@@ -17,6 +18,7 @@ const Locations = () => {
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const { t } = useTranslation();
 
   const { data: locations = [], isLoading } = useQuery({
@@ -34,6 +36,10 @@ const Locations = () => {
   const cities = [...new Set(locations.map((l: any) => l.city).filter(Boolean))];
 
   return (
+    <>
+    {lightbox && (
+      <ImageLightbox images={lightbox.images} initialIndex={lightbox.index} onClose={() => setLightbox(null)} />
+    )}
     <Layout>
       <section className="border-b border-border bg-card/30 py-16">
         <div className="container">
@@ -77,52 +83,54 @@ const Locations = () => {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((loc: any) => (
-                <Link to={`/locations/${loc.id}`} key={loc.id}>
-                  <Card className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
-                    <div className="relative h-52 overflow-hidden">
-                      <img src={loc.images?.[0] || fallbackImage} alt={loc.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
-                      <Badge className={`absolute top-3 end-3 ${loc.status === "approved" ? "bg-green-600" : "bg-amber-600"}`}>
-                        {loc.status}
-                      </Badge>
-                    </div>
-                    <CardContent className="p-5">
-                      <h3 className="font-semibold text-foreground">{loc.name}</h3>
-                      <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="h-3.5 w-3.5" /> {loc.city || t('locations.empty')}
-                      </p>
-                      <div className="mt-3 flex items-center justify-between">
-                        <div>
-                          {loc.price_per_6hours && (
-                            <p className="text-sm text-muted-foreground">${Number(loc.price_per_6hours)}<span className="text-xs"> {t('locations.per6h')}</span></p>
-                          )}
-                          <p className="text-lg font-semibold text-primary">${Number(loc.price_per_day) || 0}<span className="text-sm text-muted-foreground"> {t('locations.perDay')}</span></p>
-                        </div>
-                        <Button size="sm" variant="outline">{t('locations.viewDetails')}</Button>
+                <Card key={loc.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
+                  <div className="relative h-52 overflow-hidden">
+                    <ImageCarousel
+                      images={loc.images?.length ? loc.images : [fallbackImage]}
+                      alt={loc.name}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      onImageClick={(i) => { setLightbox({ images: loc.images?.length ? loc.images : [fallbackImage], index: i }); }}
+                    />
+                  </div>
+                  <CardContent className="p-5">
+                    <h3 className="font-semibold text-foreground">{loc.name}</h3>
+                    <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5" /> {loc.city || t('locations.empty')}
+                    </p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <div>
+                        {loc.price_per_6hours && (
+                          <p className="text-sm text-muted-foreground">${Number(loc.price_per_6hours)}<span className="text-xs"> {t('locations.per6h')}</span></p>
+                        )}
+                        <p className="text-lg font-semibold text-primary">${Number(loc.price_per_day) || 0}<span className="text-sm text-muted-foreground"> {t('locations.perDay')}</span></p>
                       </div>
-                      {loc.user_id && (
-                        <Link
-                          to={`/profile/${loc.user_id}`}
-                          onClick={e => e.stopPropagation()}
-                          className="mt-3 flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors border-t border-border/50 pt-3"
-                        >
-                          <div className="h-5 w-5 rounded-full bg-muted overflow-hidden shrink-0">
-                            {loc.avatar_url
-                              ? <img src={loc.avatar_url} alt="" className="h-full w-full object-cover" />
-                              : <User className="h-3 w-3 m-auto mt-1 text-muted-foreground" />}
-                          </div>
-                          <span>{loc.first_name || t('locations.empty')} {loc.last_name || ""}</span>
-                          <span className="ms-auto text-primary">{t('locations.viewProfile')}</span>
-                        </Link>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Link>
+                      <Link to={`/locations/${loc.id}`}>
+                        <Button size="sm" variant="outline">{t('locations.viewDetails')}</Button>
+                      </Link>
+                    </div>
+                    {loc.user_id && (
+                      <Link
+                        to={`/profile/${loc.user_id}`}
+                        className="mt-3 flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors border-t border-border/50 pt-3"
+                      >
+                        <div className="h-5 w-5 rounded-full bg-muted overflow-hidden shrink-0">
+                          {loc.avatar_url
+                            ? <img src={resolveImageUrl(loc.avatar_url)} alt="" className="h-full w-full object-cover" />
+                            : <User className="h-3 w-3 m-auto mt-1 text-muted-foreground" />}
+                        </div>
+                        <span>{loc.first_name || t('locations.empty')} {loc.last_name || ""}</span>
+                        <span className="ms-auto text-primary">{t('locations.viewProfile')}</span>
+                      </Link>
+                    )}
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
         </div>
       </section>
     </Layout>
+    </>
   );
 };
 

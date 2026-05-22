@@ -39,6 +39,7 @@ const AddCrewDialog = () => {
 
   const submit = async () => {
     if (!user) return;
+    if (!form.daily_rate || Number(form.daily_rate) <= 0) { toast.error("Please enter a daily rate"); return; }
     setLoading(true);
     try {
       await api.post("/api/crew", {
@@ -85,7 +86,7 @@ const AddCrewDialog = () => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Years of Experience</Label><Input type="number" value={form.experience_years} onChange={(e) => set("experience_years", e.target.value)} /></div>
-            <div><Label>Daily Rate ($)</Label><Input type="number" value={form.daily_rate} onChange={(e) => set("daily_rate", e.target.value)} /></div>
+            <div><Label>Daily Rate ($) <span className="text-red-500">*</span></Label><Input type="number" value={form.daily_rate} onChange={(e) => set("daily_rate", e.target.value)} /></div>
           </div>
           <ImageUpload urls={portfolio} onChange={setPortfolio} max={1} label="Profile Photo" />
           <Button onClick={submit} disabled={loading} className="w-full bg-gradient-gold text-primary-foreground font-semibold">

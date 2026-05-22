@@ -115,6 +115,18 @@ async function uploadFormData<T>(path: string, formData: FormData): Promise<T> {
   return json.data;
 }
 
+export const resolveImageUrl = (url: string): string => {
+  if (!url) return url;
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+  // Re-route any localhost URLs to the current backend (handles old DB records)
+  if (url.match(/^https?:\/\/localhost(:\d+)?/)) {
+    const path = url.replace(/^https?:\/\/localhost(:\d+)?/, '');
+    return `${BASE_URL}${path}`;
+  }
+  if (url.startsWith('http')) return url;
+  return `${BASE_URL}${url}`;
+};
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: unknown) =>

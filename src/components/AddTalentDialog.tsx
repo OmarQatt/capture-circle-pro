@@ -5,19 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import api from "@/integrations/api/client";
 import ImageUpload from "@/components/ImageUpload";
 import VideoUpload from "@/components/VideoUpload";
+import { useNavigate } from "react-router-dom";
 
 const AddTalentDialog = () => {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [genderWarning, setGenderWarning] = useState(false);
   const [form, setForm] = useState({
     bio: "", profile_type: "model", age: "",
     skin_tone: "medium", height: "", weight: "",
@@ -30,6 +33,25 @@ const AddTalentDialog = () => {
 
   const submit = async () => {
     if (!user) return;
+    if (form.profile_type === "model") {
+      setLoading(true);
+      try {
+        const fresh = await api.get<any>(`/api/profiles/${user.id}`);
+        if (!fresh?.user?.gender) {
+          setGenderWarning(true);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // if profile fetch fails, fall through and let the server validate
+      }
+      setLoading(false);
+    }
+    if (!form.daily_rate && !form.hourly_rate) {
+      toast.error("Please enter at least a daily or hourly rate");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       await api.post("/api/talent", {
@@ -58,13 +80,28 @@ const AddTalentDialog = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setGenderWarning(false); }}>
       <DialogTrigger asChild>
         <Button variant="outline"><Plus className="h-4 w-4 mr-2" /> Talent Profile</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Create Talent / Casting Profile</DialogTitle></DialogHeader>
         <div className="space-y-4 mt-2">
+          {genderWarning && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+              <div className="flex-1 text-sm">
+                <p className="font-medium text-foreground">Gender required for model profiles</p>
+                <p className="text-muted-foreground mt-0.5">Please add your gender in your profile first.</p>
+                <button
+                  className="mt-2 text-primary underline text-xs"
+                  onClick={() => { setOpen(false); navigate("/profile/" + user?.id); }}
+                >
+                  Go to my profile →
+                </button>
+              </div>
+            </div>
+          )}
           <div>
             <Label>Type</Label>
             <Select value={form.profile_type} onValueChange={(v) => set("profile_type", v)}>
@@ -102,8 +139,8 @@ const AddTalentDialog = () => {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Years Exp.</Label><Input type="number" value={form.experience_years} onChange={(e) => set("experience_years", e.target.value)} /></div>
-            <div><Label>Hourly ($)</Label><Input type="number" value={form.hourly_rate} onChange={(e) => set("hourly_rate", e.target.value)} /></div>
-            <div><Label>Daily ($)</Label><Input type="number" value={form.daily_rate} onChange={(e) => set("daily_rate", e.target.value)} /></div>
+            <div><Label>Hourly ($) <span className="text-red-500">*</span></Label><Input type="number" value={form.hourly_rate} onChange={(e) => set("hourly_rate", e.target.value)} /></div>
+            <div><Label>Daily ($) <span className="text-red-500">*</span></Label><Input type="number" value={form.daily_rate} onChange={(e) => set("daily_rate", e.target.value)} /></div>
           </div>
           <ImageUpload urls={portfolio} onChange={setPortfolio} max={10} label="Portfolio Photos" />
           <VideoUpload urls={videos} onChange={setVideos} max={5} />
