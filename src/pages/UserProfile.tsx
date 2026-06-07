@@ -3,10 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MapPin, Camera, Briefcase, Ruler, User, Loader2,
-  CalendarDays, ChevronRight, Video, Instagram, ImagePlus, Save, X, ExternalLink,
+  CalendarDays, ChevronRight, Video, ImagePlus, Save,
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,13 +40,7 @@ const UserProfile = () => {
   const [portfolioUrls, setPortfolioUrls] = useState<string[] | null>(null);
   const [portfolioSaving, setPortfolioSaving] = useState(false);
 
-  // Instagram edit state
-  const [editingInstagram, setEditingInstagram] = useState(false);
-  const [instagramDraft, setInstagramDraft] = useState("");
-  const [instagramSaving, setInstagramSaving] = useState(false);
 
-  // Gender save state
-  const [genderSaving, setGenderSaving] = useState(false);
 
   const isOwnProfile = !!authUser && authUser.id === userId;
 
@@ -99,34 +92,7 @@ const UserProfile = () => {
     }
   };
 
-  // ── Gender save ──────────────────────────────────────────────────
-  const saveGender = async (value: string) => {
-    setGenderSaving(true);
-    try {
-      await api.patch("/api/profiles/me", { gender: value });
-      queryClient.invalidateQueries({ queryKey: ["user-profile", userId] });
-      toast.success("Gender updated!");
-    } catch (err: any) {
-      toast.error("Failed: " + err.message);
-    } finally {
-      setGenderSaving(false);
-    }
-  };
 
-  // ── Instagram save ───────────────────────────────────────────────
-  const saveInstagram = async () => {
-    setInstagramSaving(true);
-    try {
-      await api.patch("/api/profiles/me", { instagram_url: instagramDraft.trim() });
-      queryClient.invalidateQueries({ queryKey: ["user-profile", userId] });
-      setEditingInstagram(false);
-      toast.success("Instagram updated!");
-    } catch (err: any) {
-      toast.error("Failed: " + err.message);
-    } finally {
-      setInstagramSaving(false);
-    }
-  };
 
   // ── Loading / error states ───────────────────────────────────────
   if (isLoading) {
@@ -158,9 +124,6 @@ const UserProfile = () => {
   const displayPortfolio = portfolioUrls ?? (user.portfolio_urls || []);
   const hasContent = locations.length > 0 || equipment.length > 0 || crewList.length > 0 || talent || displayPortfolio.length > 0;
 
-  const instagramHref = user.instagram_url
-    ? (user.instagram_url.startsWith("http") ? user.instagram_url : `https://instagram.com/${user.instagram_url.replace(/^@/, "")}`)
-    : null;
 
   return (
     <>
@@ -206,71 +169,8 @@ const UserProfile = () => {
                 <CalendarDays className="h-4 w-4" /> Member since {memberSince}
               </p>
 
-              {/* Instagram */}
-              <div className="mt-2">
-                {editingInstagram ? (
-                  <div className="flex items-center gap-2">
-                    <Instagram className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <Input
-                      value={instagramDraft}
-                      onChange={e => setInstagramDraft(e.target.value)}
-                      placeholder="username or full URL"
-                      className="h-8 text-sm w-56"
-                      autoFocus
-                    />
-                    <Button size="sm" className="h-8 gap-1" onClick={saveInstagram} disabled={instagramSaving}>
-                      {instagramSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                      Save
-                    </Button>
-                    <button type="button" onClick={() => setEditingInstagram(false)} className="text-muted-foreground hover:text-foreground">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : instagramHref ? (
-                  <div className="flex items-center gap-2">
-                    <a href={instagramHref} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
-                      <Instagram className="h-4 w-4" />
-                      {user.instagram_url.replace(/^https?:\/\/(www\.)?instagram\.com\//, "@").replace(/\/$/, "")}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                    {isOwnProfile && (
-                      <button type="button" onClick={() => { setInstagramDraft(user.instagram_url || ""); setEditingInstagram(true); }}
-                        className="text-xs text-muted-foreground hover:text-primary underline">
-                        Edit
-                      </button>
-                    )}
-                  </div>
-                ) : isOwnProfile ? (
-                  <button type="button"
-                    onClick={() => { setInstagramDraft(""); setEditingInstagram(true); }}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
-                    <Instagram className="h-4 w-4" /> Add Instagram
-                  </button>
-                ) : null}
-              </div>
-
-              {/* Gender */}
-              {isOwnProfile && (
-                <div className="mt-2 flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <Select
-                    value={user.gender || ""}
-                    onValueChange={saveGender}
-                    disabled={genderSaving}
-                  >
-                    <SelectTrigger className="h-8 w-36 text-sm">
-                      <SelectValue placeholder="Set gender…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {genderSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                </div>
-              )}
-              {!isOwnProfile && user.gender && (
+              {/* Gender (read-only) */}
+              {user.gender && (
                 <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground capitalize">
                   <User className="h-4 w-4" /> {user.gender.replace(/_/g, " ")}
                 </p>

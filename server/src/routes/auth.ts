@@ -50,9 +50,11 @@ const sendVerificationEmail = async (email: string, token: string) => {
 
 router.post('/signup', async (req: Request, res: Response) => {
   try {
-    const { email, password, first_name, last_name, role = 'user' } = req.body;
+    const { email, password, first_name, last_name, gender, role = 'user' } = req.body;
     if (!email || !password)
       return res.status(400).json({ success: false, error: 'Email and password are required' });
+    if (!gender)
+      return res.status(400).json({ success: false, error: 'Gender is required' });
 
     const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (exists.rows.length > 0)
@@ -60,9 +62,9 @@ router.post('/signup', async (req: Request, res: Response) => {
 
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await pool.query(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, email_verified)
-       VALUES ($1,$2,$3,$4,$5,true) RETURNING *`,
-      [email, hash, first_name || null, last_name || null, role]
+      `INSERT INTO users (email, password_hash, first_name, last_name, gender, role, email_verified)
+       VALUES ($1,$2,$3,$4,$5,$6,true) RETURNING *`,
+      [email, hash, first_name || null, last_name || null, gender, role]
     );
     const user = rows[0] as User;
 

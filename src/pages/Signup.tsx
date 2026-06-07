@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Film, Loader2, MailCheck, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -15,6 +16,7 @@ const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [gender, setGender] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
@@ -37,12 +39,13 @@ const Signup = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!gender) { toast({ title: "Gender is required", variant: "destructive" }); return; }
     const pwErr = validatePassword(password);
     if (pwErr) { setPasswordError(pwErr); return; }
     setPasswordError("");
     setLoading(true);
     try {
-      await api.post("/api/auth/signup", { email, password, first_name: firstName, last_name: lastName });
+      await api.post("/api/auth/signup", { email, password, first_name: firstName, last_name: lastName, gender });
       setDone(true);
     } catch (err: any) {
       toast({ title: "Signup failed", description: err.message, variant: "destructive" });
@@ -99,6 +102,18 @@ const Signup = () => {
                   <Label htmlFor="lastName">{t('auth.signup.lastName')}</Label>
                   <Input id="lastName" placeholder={t('auth.signup.lastNamePlaceholder')} value={lastName} onChange={e => setLastName(e.target.value)} required />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender <span className="text-red-500">*</span></Label>
+                <Select value={gender} onValueChange={setGender} required>
+                  <SelectTrigger id="gender">
+                    <SelectValue placeholder="Select your gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">{t('auth.signup.email')}</Label>
