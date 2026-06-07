@@ -89,6 +89,10 @@ router.post('/external', authenticate, async (req, res: Response<ApiResponse<Boo
       ownerCheck = await pool.query('SELECT id FROM locations WHERE id = $1 AND user_id = $2', [service_id, req.user!.userId]);
     } else if (service_type === 'equipment') {
       ownerCheck = await pool.query('SELECT id FROM equipment WHERE id = $1 AND user_id = $2', [service_id, req.user!.userId]);
+    } else if (service_type === 'crew') {
+      ownerCheck = await pool.query('SELECT id FROM crew_profiles WHERE id = $1 AND user_id = $2', [service_id, req.user!.userId]);
+    } else if (service_type === 'talent') {
+      ownerCheck = await pool.query('SELECT id FROM talent_profiles WHERE id = $1 AND user_id = $2', [service_id, req.user!.userId]);
     } else {
       return res.status(400).json({ success: false, error: 'Invalid service type' });
     }

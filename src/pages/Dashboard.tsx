@@ -44,9 +44,9 @@ const ApprovalBadge = ({ status }: { status: string }) => {
   }
 };
 
-const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete }: {
+const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete, onBlock }: {
   icon: any; title: string; subtitle: string; status: string;
-  onEdit?: () => void; onDelete?: () => void;
+  onEdit?: () => void; onDelete?: () => void; onBlock?: () => void;
 }) => (
   <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/20">
     <div className="flex items-center gap-3 min-w-0">
@@ -58,7 +58,12 @@ const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete }: {
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </div>
     </div>
-    <div className="flex items-center gap-2 shrink-0">
+    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+      {onBlock && (
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-amber-500 border-amber-500/30" onClick={onBlock}>
+          <CalendarOff className="h-3 w-3" /> Block
+        </Button>
+      )}
       {onEdit && (
         <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onEdit}>
           <Pencil className="h-3 w-3" /> Edit
@@ -166,7 +171,9 @@ const ExtensionRequestModal = ({ booking, onClose }: { booking: any; onClose: ()
   );
 };
 
-const ExternalBookingDialog = ({ location, onClose }: { location: any; onClose: () => void }) => {
+const ExternalBookingDialog = ({ service, serviceType, serviceName, onClose }: {
+  service: any; serviceType: string; serviceName: string; onClose: () => void;
+}) => {
   const qc = useQueryClient();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [note, setNote] = useState("");
@@ -181,17 +188,17 @@ const ExternalBookingDialog = ({ location, onClose }: { location: any; onClose: 
   useEffect(() => {
     if (!startDate || !endDate) { setOverlapping([]); return; }
     setCheckingAvail(true);
-    api.get<any>(`/api/bookings/availability?service_id=${location.id}&start_date=${startDate}&end_date=${endDate}`)
+    api.get<any>(`/api/bookings/availability?service_id=${service.id}&start_date=${startDate}&end_date=${endDate}`)
       .then(d => setOverlapping(d.overlapping || []))
       .catch(() => setOverlapping([]))
       .finally(() => setCheckingAvail(false));
-  }, [startDate, endDate, location.id]);
+  }, [startDate, endDate, service.id]);
 
   const submit = async () => {
     if (!startDate || !endDate) { toast.error("Select both start and end dates"); return; }
     setLoading(true);
     try {
-      await api.post("/api/bookings/external", { service_id: location.id, service_type: "location", start_date: startDate, end_date: endDate, note });
+      await api.post("/api/bookings/external", { service_id: service.id, service_type: serviceType, start_date: startDate, end_date: endDate, note });
       toast.success("Dates blocked successfully!");
       qc.invalidateQueries({ queryKey: ["my-bookings"] });
       onClose();
@@ -215,7 +222,7 @@ const ExternalBookingDialog = ({ location, onClose }: { location: any; onClose: 
           </div>
           <button onClick={onClose}><X className="h-4 w-4 text-muted-foreground" /></button>
         </div>
-        <p className="text-sm text-muted-foreground">Block dates for <span className="font-medium text-foreground">{location.name}</span> so users can't book them.</p>
+        <p className="text-sm text-muted-foreground">Block dates for <span className="font-medium text-foreground">{serviceName}</span> so users can't book them.</p>
 
         <div className="flex justify-center">
           <CalendarPicker
@@ -271,7 +278,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [extensionBooking, setExtensionBooking] = useState<any>(null);
-  const [blockLocation, setBlockLocation] = useState<any>(null);
+  const [blockService, setBlockService] = useState<{ service: any; serviceType: string; serviceName: string } | null>(null);
   const [editItem, setEditItem] = useState<{ type: string; item: any } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -364,8 +371,13 @@ const Dashboard = () => {
     {extensionBooking && (
       <ExtensionRequestModal booking={extensionBooking} onClose={() => setExtensionBooking(null)} />
     )}
-    {blockLocation && (
-      <ExternalBookingDialog location={blockLocation} onClose={() => setBlockLocation(null)} />
+    {blockService && (
+      <ExternalBookingDialog
+        service={blockService.service}
+        serviceType={blockService.serviceType}
+        serviceName={blockService.serviceName}
+        onClose={() => setBlockService(null)}
+      />
     )}
     {editItem?.type === "location" && <EditLocationDialog location={editItem.item} onClose={() => setEditItem(null)} />}
     {editItem?.type === "equipment" && <EditEquipmentDialog equipment={editItem.item} onClose={() => setEditItem(null)} />}
@@ -485,7 +497,8 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                           {l.status === "approved" && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-amber-500 border-amber-500/30" onClick={() => setBlockLocation(l)}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-amber-500 border-amber-500/30"
+                              onClick={() => setBlockService({ service: l, serviceType: "location", serviceName: l.name })}>
                               <CalendarOff className="h-3 w-3" /> Block
                             </Button>
                           )}
@@ -507,33 +520,42 @@ const Dashboard = () => {
                         title={e.name}
                         subtitle={t('dashboard.equipmentItem', { brand: e.brand || e.category || '—' })}
                         status={e.approval_status || "pending"}
+                        onBlock={e.approval_status === "approved" ? () => setBlockService({ service: e, serviceType: "equipment", serviceName: e.name }) : undefined}
                         onEdit={() => setEditItem({ type: "equipment", item: e })}
                         onDelete={() => setDeleteConfirm({ type: "equipment", id: e.id, name: e.name })}
                       />
                     ))}
 
-                    {myCrew.map((c: any) => (
+                    {myCrew.map((c: any) => {
+                      const crewName = t(`crew.roles.${c.role}`, { defaultValue: c.role });
+                      return (
                       <ListingRow
                         key={c.id}
                         icon={Briefcase}
-                        title={t(`crew.roles.${c.role}`, { defaultValue: c.role })}
+                        title={crewName}
                         subtitle={t('dashboard.crewItem', { years: c.experience_years || 0 })}
                         status={c.status || "pending"}
+                        onBlock={c.status === "approved" ? () => setBlockService({ service: c, serviceType: "crew", serviceName: crewName }) : undefined}
                         onEdit={() => setEditItem({ type: "crew", item: c })}
-                        onDelete={() => setDeleteConfirm({ type: "crew", id: c.id, name: t(`crew.roles.${c.role}`, { defaultValue: c.role }) })}
+                        onDelete={() => setDeleteConfirm({ type: "crew", id: c.id, name: crewName })}
                       />
-                    ))}
+                      );
+                    })}
 
-                    {myTalent && (
+                    {myTalent && (() => {
+                      const talentName = `${myTalent.profile_type?.charAt(0).toUpperCase()}${myTalent.profile_type?.slice(1)} Profile`;
+                      return (
                       <ListingRow
                         icon={User}
-                        title={`${myTalent.profile_type?.charAt(0).toUpperCase()}${myTalent.profile_type?.slice(1)} Profile`}
+                        title={talentName}
+                        onBlock={myTalent.status === "approved" ? () => setBlockService({ service: myTalent, serviceType: "talent", serviceName: talentName }) : undefined}
                         onEdit={() => setEditItem({ type: "talent", item: myTalent })}
                         onDelete={() => setDeleteConfirm({ type: "talent", id: myTalent.id, name: `${myTalent.profile_type} profile` })}
                         subtitle={t('dashboard.talentItem', { years: myTalent.experience_years || 0 })}
                         status={myTalent.status || "pending"}
                       />
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
               </CardContent>
