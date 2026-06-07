@@ -7,11 +7,14 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/integrations/api/client";
 import BookingDialog from "@/components/BookingDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const fallbackImage = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80";
 
 const LocationDetail = () => {
   const { id } = useParams();
+  const { user } = useAuth();
 
   const { data: location, isLoading } = useQuery({
     queryKey: ["location", id],
@@ -80,14 +83,20 @@ const LocationDetail = () => {
                   <p className="text-3xl font-bold text-primary">${Number(location.price_per_day) || 0}<span className="text-base text-muted-foreground font-normal"> / day</span></p>
                 </div>
 
-                <BookingDialog
-                  serviceId={location.id}
-                  serviceType="location"
-                  providerId={location.user_id}
-                  pricePerDay={Number(location.price_per_day) || 0}
-                  pricePer6Hours={location.price_per_6hours ? Number(location.price_per_6hours) : undefined}
-                  pricePer12Hours={location.price_per_12hours ? Number(location.price_per_12hours) : undefined}
-                />
+                {user?.id === location.user_id ? (
+                  <Button disabled className="w-full bg-gradient-gold text-primary-foreground font-semibold opacity-50 cursor-not-allowed">
+                    Your Listing
+                  </Button>
+                ) : (
+                  <BookingDialog
+                    serviceId={location.id}
+                    serviceType="location"
+                    providerId={location.user_id}
+                    pricePerDay={Number(location.price_per_day) || 0}
+                    pricePer6Hours={location.price_per_6hours ? Number(location.price_per_6hours) : undefined}
+                    pricePer12Hours={location.price_per_12hours ? Number(location.price_per_12hours) : undefined}
+                  />
+                )}
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Shield className="h-4 w-4 text-primary" />

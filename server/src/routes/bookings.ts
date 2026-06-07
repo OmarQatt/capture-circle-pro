@@ -44,6 +44,26 @@ router.get('/availability', async (req, res: Response<ApiResponse<any>>) => {
   }
 });
 
+router.get('/blocked-dates', async (req, res: Response<ApiResponse<any>>) => {
+  try {
+    const { service_id } = req.query;
+    if (!service_id) return res.status(400).json({ success: false, error: 'Missing service_id' });
+
+    const { rows } = await pool.query(
+      `SELECT start_date, end_date
+       FROM bookings
+       WHERE service_id = $1
+         AND status NOT IN ('cancelled','rejected')
+       ORDER BY start_date`,
+      [service_id]
+    );
+    res.json({ success: true, data: { ranges: rows } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch blocked dates' });
+  }
+});
+
 router.get('/:id', authenticate, async (req, res: Response<ApiResponse<Booking>>) => {
   try {
     const { rows } = await pool.query('SELECT * FROM bookings WHERE id = $1', [req.params.id]);

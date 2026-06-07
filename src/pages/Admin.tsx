@@ -151,6 +151,7 @@ const Admin = () => {
   const equipmentMutation = makeStatusMutation("equipment", "admin-pending-equipment");
   const crewMutation = makeStatusMutation("crew", "admin-pending-crew");
   const talentMutation = makeStatusMutation("talent", "admin-pending-talent");
+  const bookingMutation = makeStatusMutation("bookings", "admin-bookings");
 
   const roleMutation = useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) =>
@@ -397,14 +398,32 @@ const Admin = () => {
                           <th className="p-4 text-left font-medium">Dates</th>
                           <th className="p-4 text-left font-medium">Status</th>
                           <th className="p-4 text-right font-medium">Amount</th>
+                          <th className="p-4 text-right font-medium">Actions</th>
                         </tr></thead>
                         <tbody>
                           {allBookings.map((b: any) => (
                             <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30">
                               <td className="p-4"><Badge variant="outline">{b.service_type}</Badge></td>
                               <td className="p-4 text-muted-foreground">{b.start_date?.slice(0, 10)} → {b.end_date?.slice(0, 10)}</td>
-                              <td className="p-4"><Badge>{b.status}</Badge></td>
+                              <td className="p-4">
+                                <Badge className={
+                                  b.status === "confirmed" ? "bg-green-600" :
+                                  b.status === "cancelled" ? "bg-red-600" :
+                                  b.status === "completed" ? "bg-blue-600" : ""
+                                }>{b.status}</Badge>
+                              </td>
                               <td className="p-4 text-right font-semibold text-primary">${Number(b.total_price) || 0}</td>
+                              <td className="p-4 text-right">
+                                {b.status === "pending" ? (
+                                  <ApproveRejectButtons
+                                    loading={bookingMutation.isPending}
+                                    onApprove={() => bookingMutation.mutate({ id: b.id, status: "confirmed" })}
+                                    onReject={() => bookingMutation.mutate({ id: b.id, status: "cancelled" })}
+                                  />
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </td>
                             </tr>
                           ))}
                         </tbody>

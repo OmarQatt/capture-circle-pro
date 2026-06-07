@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, DollarSign, TrendingUp, Loader2, MapPin, Camera, Briefcase, User, Clock, AlertTriangle, Timer, CalendarOff, X, Pencil, Trash2, Shield } from "lucide-react";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { useAuth } from "@/contexts/AuthContext";
 import AddLocationDialog from "@/components/AddLocationDialog";
 import AddEquipmentDialog from "@/components/AddEquipmentDialog";
@@ -21,6 +22,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 
 const bookingStatusColor = (s: string) => {
   switch (s) {
@@ -165,13 +168,15 @@ const ExtensionRequestModal = ({ booking, onClose }: { booking: any; onClose: ()
 
 const ExternalBookingDialog = ({ location, onClose }: { location: any; onClose: () => void }) => {
   const qc = useQueryClient();
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [overlapping, setOverlapping] = useState<any[]>([]);
   const [checkingAvail, setCheckingAvail] = useState(false);
   const { t } = useTranslation();
+
+  const startDate = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : "";
+  const endDate = dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : "";
 
   useEffect(() => {
     if (!startDate || !endDate) { setOverlapping([]); return; }
@@ -184,7 +189,6 @@ const ExternalBookingDialog = ({ location, onClose }: { location: any; onClose: 
 
   const submit = async () => {
     if (!startDate || !endDate) { toast.error("Select both start and end dates"); return; }
-    if (new Date(endDate) < new Date(startDate)) { toast.error("End date must be after start date"); return; }
     setLoading(true);
     try {
       await api.post("/api/bookings/external", { service_id: location.id, service_type: "location", start_date: startDate, end_date: endDate, note });
@@ -198,6 +202,9 @@ const ExternalBookingDialog = ({ location, onClose }: { location: any; onClose: 
     }
   };
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 space-y-4 shadow-xl">
@@ -209,14 +216,27 @@ const ExternalBookingDialog = ({ location, onClose }: { location: any; onClose: 
           <button onClick={onClose}><X className="h-4 w-4 text-muted-foreground" /></button>
         </div>
         <p className="text-sm text-muted-foreground">Block dates for <span className="font-medium text-foreground">{location.name}</span> so users can't book them.</p>
-        <div>
-          <Label>Start Date</Label>
-          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1" min={new Date().toISOString().slice(0, 10)} />
+
+        <div className="flex justify-center">
+          <CalendarPicker
+            mode="range"
+            selected={dateRange}
+            onSelect={setDateRange}
+            disabled={(d) => d < today}
+            numberOfMonths={1}
+            className="rounded-lg border border-border p-3"
+            classNames={{ day_today: "border border-primary/60 rounded-md text-foreground" }}
+          />
         </div>
-        <div>
-          <Label>End Date</Label>
-          <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="mt-1" min={startDate || new Date().toISOString().slice(0, 10)} />
-        </div>
+
+        {dateRange?.from && (
+          <p className="text-xs text-center text-muted-foreground">
+            {dateRange.to && dateRange.to.getTime() !== dateRange.from.getTime()
+              ? `${format(dateRange.from, "MMM d")} → ${format(dateRange.to, "MMM d, yyyy")}`
+              : format(dateRange.from, "MMM d, yyyy")}
+          </p>
+        )}
+
         {checkingAvail && (
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Loader2 className="h-3 w-3 animate-spin" /> Checking existing bookings…
@@ -237,7 +257,7 @@ const ExternalBookingDialog = ({ location, onClose }: { location: any; onClose: 
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={onClose}>{t('dashboard.cancel')}</Button>
-          <Button className="flex-1 bg-gradient-gold text-primary-foreground font-semibold" onClick={submit} disabled={loading}>
+          <Button className="flex-1 bg-gradient-gold text-primary-foreground font-semibold" onClick={submit} disabled={loading || !dateRange?.from}>
             {loading && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Block Dates
           </Button>
         </div>

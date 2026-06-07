@@ -146,6 +146,24 @@ router.get('/bookings', async (req, res: Response<ApiResponse<any[]>>) => {
   }
 });
 
+router.patch('/bookings/:id/status', async (req, res: Response<ApiResponse<any>>) => {
+  try {
+    const { status } = req.body;
+    if (!['confirmed', 'cancelled', 'completed'].includes(status))
+      return res.status(400).json({ success: false, error: 'Invalid status' });
+
+    const { rows } = await pool.query(
+      'UPDATE bookings SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [status, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ success: false, error: 'Booking not found' });
+    res.json({ success: true, data: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to update booking status' });
+  }
+});
+
 router.get('/users', async (_req, res: Response<ApiResponse<any[]>>) => {
   try {
     const { rows } = await pool.query(

@@ -79,10 +79,10 @@ const Index = () => {
               {t('home.servicesTitle')}
             </h2>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div >
             {services.map((s) => (
               <Link to={s.link} key={s.link}>
-                <Card className="group h-full border-border/50 bg-card transition-all hover:border-primary/50 hover:shadow-gold">
+                <Card>
                   <CardContent className="p-6">
                     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                       <s.icon className="h-6 w-6 text-primary" />
