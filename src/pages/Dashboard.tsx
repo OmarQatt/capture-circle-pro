@@ -2,7 +2,7 @@ import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, DollarSign, TrendingUp, Loader2, MapPin, Camera, Briefcase, User, Clock, AlertTriangle, Timer, CalendarOff, X, Pencil, Trash2, Shield } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, Loader2, MapPin, Camera, Briefcase, User, Clock, AlertTriangle, Timer, CalendarOff, X, Pencil, Trash2, Shield, ChevronDown, CheckCircle2, XCircle } from "lucide-react";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { useAuth } from "@/contexts/AuthContext";
 import AddLocationDialog from "@/components/AddLocationDialog";
@@ -44,9 +44,11 @@ const ApprovalBadge = ({ status }: { status: string }) => {
   }
 };
 
-const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete, onBlock }: {
+const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete, onBlock,
+  reservationCount, pendingCount, isExpanded, onToggleExpand }: {
   icon: any; title: string; subtitle: string; status: string;
   onEdit?: () => void; onDelete?: () => void; onBlock?: () => void;
+  reservationCount?: number; pendingCount?: number; isExpanded?: boolean; onToggleExpand?: () => void;
 }) => (
   <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/20">
     <div className="flex items-center gap-3 min-w-0">
@@ -59,6 +61,14 @@ const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete, onB
       </div>
     </div>
     <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+      {onToggleExpand && (reservationCount ?? 0) > 0 && (
+        <button onClick={onToggleExpand}
+          className="flex items-center gap-1 rounded-full border border-border/50 bg-muted/20 px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted/50 transition-colors">
+          {(pendingCount ?? 0) > 0 && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />}
+          {reservationCount} booking{reservationCount !== 1 ? "s" : ""}
+          <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+        </button>
+      )}
       {onBlock && (
         <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-amber-500 border-amber-500/30" onClick={onBlock}>
           <CalendarOff className="h-3 w-3" /> Block
@@ -78,6 +88,106 @@ const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete, onB
     </div>
   </div>
 );
+
+const ServiceBookingsPanel = ({
+  bookings,
+  onApprove,
+  onReject,
+  mutating,
+}: {
+  bookings: any[];
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  mutating: boolean;
+}) => {
+  if (bookings.length === 0) {
+    return (
+      <div className="ms-4 mt-1 rounded-lg border border-dashed border-border/40 p-4 text-center text-sm text-muted-foreground">
+        No reservations yet.
+      </div>
+    );
+  }
+  return (
+    <div className="ms-4 mt-1 space-y-2">
+      {bookings.map((b) => {
+        const isExternal = b.client_id === b.provider_id;
+        const isPending = b.status === "pending" && !isExternal;
+        const bookingTypeLabel = b.booking_type === "day" ? "Full Day" : b.booking_type;
+        return (
+          <div key={b.id} className="rounded-lg border border-border/50 bg-card p-4 space-y-2.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                {isExternal ? (
+                  <>
+                    <CalendarOff className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span className="text-sm font-medium text-amber-500">Blocked by you</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <User className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground leading-tight">
+                        {b.client_first_name} {b.client_last_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{b.client_email}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              <Badge className={`${bookingStatusColor(b.status)} shrink-0`}>{b.status}</Badge>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5" />
+                {b.start_date?.slice(0, 10)}
+                {b.end_date && b.end_date.slice(0, 10) !== b.start_date?.slice(0, 10)
+                  ? ` → ${b.end_date.slice(0, 10)}`
+                  : ""}
+              </span>
+              <Badge variant="outline" className="text-xs">{bookingTypeLabel}</Badge>
+              {Number(b.total_price) > 0 && (
+                <span className="font-semibold text-primary">${Number(b.total_price)}</span>
+              )}
+            </div>
+
+            {b.notes && !b.notes.startsWith("[External") && (
+              <p className="rounded bg-muted/30 px-2.5 py-1.5 text-xs text-muted-foreground">
+                💬 {b.notes}
+              </p>
+            )}
+
+            {b.extension_status === "pending" && (
+              <p className="text-xs text-amber-400 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Extension requested: +{b.extension_hours}h
+                {b.extension_note ? ` · "${b.extension_note}"` : ""}
+              </p>
+            )}
+            {b.extension_status === "approved" && (
+              <p className="text-xs text-green-400">Extension approved: +{b.extension_hours}h</p>
+            )}
+
+            {isPending && (
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-green-500 border-green-500/30"
+                  disabled={mutating} onClick={() => onApprove(b.id)}>
+                  <CheckCircle2 className="h-3 w-3" /> Approve
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-red-500 border-red-500/30"
+                  disabled={mutating} onClick={() => onReject(b.id)}>
+                  <XCircle className="h-3 w-3" /> Reject
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 const ExtensionRequestModal = ({ booking, onClose }: { booking: any; onClose: () => void }) => {
   const qc = useQueryClient();
@@ -282,6 +392,7 @@ const Dashboard = () => {
   const [editItem, setEditItem] = useState<{ type: string; item: any } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
   const { t } = useTranslation();
 
   const handleDelete = async () => {
@@ -342,6 +453,29 @@ const Dashboard = () => {
     queryKey: ["my-talent", user?.id],
     enabled: !!user,
     queryFn: () => api.get<any>("/api/talent/my-profile").catch(() => null),
+  });
+
+  const { data: receivedRaw } = useQuery({
+    queryKey: ["received-bookings", user?.id],
+    enabled: !!user,
+    queryFn: () => api.get<any[]>("/api/bookings/received"),
+  });
+  const receivedBookings: any[] = Array.isArray(receivedRaw) ? receivedRaw : [];
+
+  const bookingsByService = receivedBookings.reduce((acc, b) => {
+    if (!acc[b.service_id]) acc[b.service_id] = [];
+    acc[b.service_id].push(b);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  const ownerBookingMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      api.patch(`/api/bookings/${id}/status`, { status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["received-bookings"] });
+      toast.success("Booking updated!");
+    },
+    onError: (err: any) => toast.error("Failed: " + err.message),
   });
 
   const extensionMutation = useMutation({
@@ -484,76 +618,150 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {myLocations.map((l: any) => (
-                      <div key={l.id} className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/20">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                            <MapPin className="h-4 w-4 text-primary" />
+                    {myLocations.map((l: any) => {
+                      const lBookings = bookingsByService[l.id] || [];
+                      const lPending = lBookings.filter((b: any) => b.status === "pending" && b.client_id !== b.provider_id).length;
+                      const isExp = expandedServiceId === l.id;
+                      return (
+                      <div key={l.id}>
+                        <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/20">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                              <MapPin className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground truncate">{l.name}</p>
+                              <p className="text-xs text-muted-foreground">{t('dashboard.locationCity', { city: l.city || '—' })}</p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-foreground truncate">{l.name}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.locationCity', { city: l.city || '—' })}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                          {l.status === "approved" && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-amber-500 border-amber-500/30"
-                              onClick={() => setBlockService({ service: l, serviceType: "location", serviceName: l.name })}>
-                              <CalendarOff className="h-3 w-3" /> Block
+                          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                            {lBookings.length > 0 && (
+                              <button onClick={() => setExpandedServiceId(isExp ? null : l.id)}
+                                className="flex items-center gap-1 rounded-full border border-border/50 bg-muted/20 px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted/50 transition-colors">
+                                {lPending > 0 && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />}
+                                {lBookings.length} booking{lBookings.length !== 1 ? "s" : ""}
+                                <ChevronDown className={`h-3 w-3 transition-transform ${isExp ? "rotate-180" : ""}`} />
+                              </button>
+                            )}
+                            {l.status === "approved" && (
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-amber-500 border-amber-500/30"
+                                onClick={() => setBlockService({ service: l, serviceType: "location", serviceName: l.name })}>
+                                <CalendarOff className="h-3 w-3" /> Block
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setEditItem({ type: "location", item: l })}>
+                              <Pencil className="h-3 w-3" /> Edit
                             </Button>
-                          )}
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setEditItem({ type: "location", item: l })}>
-                            <Pencil className="h-3 w-3" /> Edit
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-500/30 px-2" onClick={() => setDeleteConfirm({ type: "location", id: l.id, name: l.name })}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                          <ApprovalBadge status={l.status} />
+                            <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-500/30 px-2" onClick={() => setDeleteConfirm({ type: "location", id: l.id, name: l.name })}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                            <ApprovalBadge status={l.status} />
+                          </div>
                         </div>
+                        {isExp && (
+                          <ServiceBookingsPanel
+                            bookings={lBookings}
+                            onApprove={(id) => ownerBookingMutation.mutate({ id, status: "confirmed" })}
+                            onReject={(id) => ownerBookingMutation.mutate({ id, status: "rejected" })}
+                            mutating={ownerBookingMutation.isPending}
+                          />
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
 
-                    {myEquipment.map((e: any) => (
-                      <ListingRow
-                        key={e.id}
-                        icon={Camera}
-                        title={e.name}
-                        subtitle={t('dashboard.equipmentItem', { brand: e.brand || e.category || '—' })}
-                        status={e.approval_status || "pending"}
-                        onBlock={e.approval_status === "approved" ? () => setBlockService({ service: e, serviceType: "equipment", serviceName: e.name }) : undefined}
-                        onEdit={() => setEditItem({ type: "equipment", item: e })}
-                        onDelete={() => setDeleteConfirm({ type: "equipment", id: e.id, name: e.name })}
-                      />
-                    ))}
+                    {myEquipment.map((e: any) => {
+                      const eBookings = bookingsByService[e.id] || [];
+                      const ePending = eBookings.filter((b: any) => b.status === "pending" && b.client_id !== b.provider_id).length;
+                      const isExp = expandedServiceId === e.id;
+                      return (
+                      <div key={e.id}>
+                        <ListingRow
+                          icon={Camera}
+                          title={e.name}
+                          subtitle={t('dashboard.equipmentItem', { brand: e.brand || e.category || '—' })}
+                          status={e.approval_status || "pending"}
+                          reservationCount={eBookings.length}
+                          pendingCount={ePending}
+                          isExpanded={isExp}
+                          onToggleExpand={() => setExpandedServiceId(isExp ? null : e.id)}
+                          onBlock={e.approval_status === "approved" ? () => setBlockService({ service: e, serviceType: "equipment", serviceName: e.name }) : undefined}
+                          onEdit={() => setEditItem({ type: "equipment", item: e })}
+                          onDelete={() => setDeleteConfirm({ type: "equipment", id: e.id, name: e.name })}
+                        />
+                        {isExp && (
+                          <ServiceBookingsPanel
+                            bookings={eBookings}
+                            onApprove={(id) => ownerBookingMutation.mutate({ id, status: "confirmed" })}
+                            onReject={(id) => ownerBookingMutation.mutate({ id, status: "rejected" })}
+                            mutating={ownerBookingMutation.isPending}
+                          />
+                        )}
+                      </div>
+                      );
+                    })}
 
                     {myCrew.map((c: any) => {
                       const crewName = t(`crew.roles.${c.role}`, { defaultValue: c.role });
+                      const cBookings = bookingsByService[c.id] || [];
+                      const cPending = cBookings.filter((b: any) => b.status === "pending" && b.client_id !== b.provider_id).length;
+                      const isExp = expandedServiceId === c.id;
                       return (
-                      <ListingRow
-                        key={c.id}
-                        icon={Briefcase}
-                        title={crewName}
-                        subtitle={t('dashboard.crewItem', { years: c.experience_years || 0 })}
-                        status={c.status || "pending"}
-                        onBlock={c.status === "approved" ? () => setBlockService({ service: c, serviceType: "crew", serviceName: crewName }) : undefined}
-                        onEdit={() => setEditItem({ type: "crew", item: c })}
-                        onDelete={() => setDeleteConfirm({ type: "crew", id: c.id, name: crewName })}
-                      />
+                      <div key={c.id}>
+                        <ListingRow
+                          icon={Briefcase}
+                          title={crewName}
+                          subtitle={t('dashboard.crewItem', { years: c.experience_years || 0 })}
+                          status={c.status || "pending"}
+                          reservationCount={cBookings.length}
+                          pendingCount={cPending}
+                          isExpanded={isExp}
+                          onToggleExpand={() => setExpandedServiceId(isExp ? null : c.id)}
+                          onBlock={c.status === "approved" ? () => setBlockService({ service: c, serviceType: "crew", serviceName: crewName }) : undefined}
+                          onEdit={() => setEditItem({ type: "crew", item: c })}
+                          onDelete={() => setDeleteConfirm({ type: "crew", id: c.id, name: crewName })}
+                        />
+                        {isExp && (
+                          <ServiceBookingsPanel
+                            bookings={cBookings}
+                            onApprove={(id) => ownerBookingMutation.mutate({ id, status: "confirmed" })}
+                            onReject={(id) => ownerBookingMutation.mutate({ id, status: "rejected" })}
+                            mutating={ownerBookingMutation.isPending}
+                          />
+                        )}
+                      </div>
                       );
                     })}
 
                     {myTalent && (() => {
                       const talentName = `${myTalent.profile_type?.charAt(0).toUpperCase()}${myTalent.profile_type?.slice(1)} Profile`;
+                      const tBookings = bookingsByService[myTalent.id] || [];
+                      const tPending = tBookings.filter((b: any) => b.status === "pending" && b.client_id !== b.provider_id).length;
+                      const isExp = expandedServiceId === myTalent.id;
                       return (
-                      <ListingRow
-                        icon={User}
-                        title={talentName}
-                        onBlock={myTalent.status === "approved" ? () => setBlockService({ service: myTalent, serviceType: "talent", serviceName: talentName }) : undefined}
-                        onEdit={() => setEditItem({ type: "talent", item: myTalent })}
-                        onDelete={() => setDeleteConfirm({ type: "talent", id: myTalent.id, name: `${myTalent.profile_type} profile` })}
-                        subtitle={t('dashboard.talentItem', { years: myTalent.experience_years || 0 })}
-                        status={myTalent.status || "pending"}
-                      />
+                      <div>
+                        <ListingRow
+                          icon={User}
+                          title={talentName}
+                          subtitle={t('dashboard.talentItem', { years: myTalent.experience_years || 0 })}
+                          status={myTalent.status || "pending"}
+                          reservationCount={tBookings.length}
+                          pendingCount={tPending}
+                          isExpanded={isExp}
+                          onToggleExpand={() => setExpandedServiceId(isExp ? null : myTalent.id)}
+                          onBlock={myTalent.status === "approved" ? () => setBlockService({ service: myTalent, serviceType: "talent", serviceName: talentName }) : undefined}
+                          onEdit={() => setEditItem({ type: "talent", item: myTalent })}
+                          onDelete={() => setDeleteConfirm({ type: "talent", id: myTalent.id, name: `${myTalent.profile_type} profile` })}
+                        />
+                        {isExp && (
+                          <ServiceBookingsPanel
+                            bookings={tBookings}
+                            onApprove={(id) => ownerBookingMutation.mutate({ id, status: "confirmed" })}
+                            onReject={(id) => ownerBookingMutation.mutate({ id, status: "rejected" })}
+                            mutating={ownerBookingMutation.isPending}
+                          />
+                        )}
+                      </div>
                       );
                     })()}
                   </div>

@@ -44,6 +44,29 @@ router.get('/availability', async (req, res: Response<ApiResponse<any>>) => {
   }
 });
 
+router.get('/received', authenticate, async (req, res: Response<ApiResponse<any>>) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT b.*,
+              u.first_name  AS client_first_name,
+              u.last_name   AS client_last_name,
+              u.email       AS client_email,
+              u.avatar_url  AS client_avatar_url
+       FROM bookings b
+       JOIN users u ON b.client_id = u.id
+       WHERE b.provider_id = $1
+       ORDER BY
+         CASE WHEN b.status = 'pending' THEN 0 ELSE 1 END,
+         b.start_date ASC`,
+      [req.user!.userId]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch received bookings' });
+  }
+});
+
 router.get('/blocked-dates', async (req, res: Response<ApiResponse<any>>) => {
   try {
     const { service_id } = req.query;
@@ -135,7 +158,7 @@ router.post('/', authenticate, async (req, res: Response<ApiResponse<Booking>>) 
 router.patch('/:id/status', authenticate, async (req, res: Response<ApiResponse<Booking>>) => {
   try {
     const { status } = req.body;
-    if (!['pending','confirmed','completed','cancelled'].includes(status))
+    if (!['pending','confirmed','completed','cancelled','rejected'].includes(status))
       return res.status(400).json({ success: false, error: 'Invalid status' });
 
     const { rows: existing } = await pool.query('SELECT * FROM bookings WHERE id = $1', [req.params.id]);
