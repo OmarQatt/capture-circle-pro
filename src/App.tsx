@@ -21,6 +21,11 @@ import LocationDetail from "./pages/LocationDetail";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import UserProfile from "./pages/UserProfile";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Policies from "./pages/Policies";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +62,11 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile/:userId" element={<UserProfile />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/policies" element={<Policies />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
