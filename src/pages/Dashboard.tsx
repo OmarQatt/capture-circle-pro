@@ -507,6 +507,12 @@ const Dashboard = () => {
     ...myCrew.filter((c: any) => c.status === "pending"),
     ...(myTalent?.status === "pending" ? [myTalent] : []),
   ].length;
+  const approvedCount = [
+    ...myLocations.filter((l: any) => l.status === "approved"),
+    ...myEquipment.filter((e: any) => e.approval_status === "approved"),
+    ...myCrew.filter((c: any) => c.status === "approved"),
+    ...(myTalent?.status === "approved" ? [myTalent] : []),
+  ].length;
 
   return (
     <>
@@ -596,7 +602,7 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">{t('dashboard.approved')}</p>
                 <DollarSign className="h-4 w-4 text-green-500" />
               </div>
-              <p className="mt-2 text-2xl font-bold text-green-500">{totalListings - pendingCount}</p>
+              <p className="mt-2 text-2xl font-bold text-green-500">{approvedCount}</p>
             </CardContent>
           </Card>
         </div>
