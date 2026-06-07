@@ -13,7 +13,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
-import api from "@/integrations/api/client";
+import api, { resolveImageUrl } from "@/integrations/api/client";
 
 const fallbackImage = "https://images.unsplash.com/photo-1585506942812-e72b29cef752?w=600&q=80";
 
@@ -77,11 +77,11 @@ const Equipment = () => {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((eq) => (
                 <Card key={eq.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
-                  <div className="relative h-52 overflow-hidden">
+                  <div className="relative h-52 overflow-hidden bg-muted/20">
                     <ImageCarousel
                       images={eq.images?.length ? eq.images : [fallbackImage]}
                       alt={eq.name}
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      className="h-full w-full object-contain transition-transform group-hover:scale-105"
                       onImageClick={(i) => setLightbox({ images: eq.images?.length ? eq.images : [fallbackImage], index: i })}
                     />
                     <Badge className={`absolute top-3 end-3 z-10 ${eq.status === "available" ? "bg-green-600" : "bg-red-600"}`}>
@@ -104,7 +104,7 @@ const Equipment = () => {
                       >
                         <div className="h-5 w-5 rounded-full bg-muted overflow-hidden shrink-0">
                           {eq.avatar_url
-                            ? <img src={eq.avatar_url} alt="" className="h-full w-full object-cover" />
+                            ? <img src={resolveImageUrl(eq.avatar_url)} alt="" className="h-full w-full object-cover" />
                             : <User className="h-3 w-3 m-auto mt-1 text-muted-foreground" />}
                         </div>
                         {eq.first_name || "—"} {eq.last_name || ""}

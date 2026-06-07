@@ -88,16 +88,21 @@ const Models = () => {
               {filtered.map((model: any) => (
                 <Card key={model.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
                   <div
-                    className="relative h-80 overflow-hidden cursor-zoom-in"
+                    className="relative h-80 overflow-hidden bg-muted/20 cursor-zoom-in"
                     onClick={() => setLightbox({ images: model.portfolio_urls?.length ? model.portfolio_urls : [fallbackImage], index: 0 })}
                   >
                     <img
                       src={resolveImageUrl(model.portfolio_urls?.[0] || fallbackImage)}
                       alt="Model"
-                      className="h-full w-full object-cover object-[center_15%] transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
                       onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage; }}
                     />
+                    {(model.portfolio_urls?.length || 0) > 1 && (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">
+                        +{model.portfolio_urls.length - 1}
+                      </span>
+                    )}
                   </div>
                   <CardContent className="p-5">
                     <Link to={`/profile/${model.user_id}`} className="block hover:opacity-80 transition-opacity">

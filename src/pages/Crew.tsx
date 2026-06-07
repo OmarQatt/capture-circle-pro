@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Search, Briefcase, Loader2 } from "lucide-react";
 import BookingDialog from "@/components/BookingDialog";
+import ImageLightbox from "@/components/ImageLightbox";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -32,6 +33,7 @@ const crewRoleKeys = [
 const Crew = () => {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const { t } = useTranslation();
   const { user } = useAuth();
 
@@ -48,6 +50,10 @@ const Crew = () => {
   });
 
   return (
+    <>
+    {lightbox && (
+      <ImageLightbox images={lightbox.images} initialIndex={lightbox.index} onClose={() => setLightbox(null)} />
+    )}
     <Layout>
       <section className="border-b border-border bg-card/30 py-16">
         <div className="container">
@@ -81,22 +87,51 @@ const Crew = () => {
             <p className="text-center text-muted-foreground py-20">{t('crew.empty')}</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((member: any) => (
+              {filtered.map((member: any) => {
+                const portfolioImgs = member.portfolio_urls?.length
+                  ? member.portfolio_urls
+                  : member.avatar_url
+                  ? [member.avatar_url]
+                  : [fallbackAvatar];
+                return (
                 <Card key={member.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
+                  <div
+                    className="relative h-56 overflow-hidden bg-muted/20 cursor-zoom-in"
+                    onClick={() => setLightbox({ images: portfolioImgs, index: 0 })}
+                  >
+                    <img
+                      src={resolveImageUrl(portfolioImgs[0])}
+                      alt=""
+                      className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                      onError={(e) => { (e.target as HTMLImageElement).src = fallbackAvatar; }}
+                    />
+                    {portfolioImgs.length > 1 && (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">
+                        +{portfolioImgs.length - 1}
+                      </span>
+                    )}
+                  </div>
                   <CardContent className="p-6">
                     <Link to={`/profile/${member.user_id}`} className="block">
-                      <div className="flex items-start gap-4">
-                        <img src={resolveImageUrl(member.portfolio_urls?.[0] || member.avatar_url || fallbackAvatar)} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).src = fallbackAvatar; }} />
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-foreground">
+                      <div className="flex items-start gap-3">
+                        <img
+                          src={resolveImageUrl(member.avatar_url || fallbackAvatar)}
+                          alt=""
+                          className="h-10 w-10 rounded-full object-cover ring-2 ring-border shrink-0"
+                          loading="lazy"
+                          onError={(e) => { (e.target as HTMLImageElement).src = fallbackAvatar; }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground truncate">
                             {member.first_name || "—"} {member.last_name || ""}
                           </h3>
-                          <p className="mt-1 text-sm font-medium text-primary">
+                          <p className="text-sm font-medium text-primary">
                             {t(`crew.roles.${member.role}`, { defaultValue: member.role })}
                           </p>
                         </div>
                       </div>
-                      <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
                         <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" />{member.experience_years || 0} {t('crew.yearsExp')}</span>
                         {member.daily_rate && <span className="text-primary font-semibold">${Number(member.daily_rate)}{t('crew.perDay')}</span>}
                       </div>
@@ -124,12 +159,14 @@ const Crew = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </section>
     </Layout>
+    </>
   );
 };
 
