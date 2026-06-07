@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Check, X, Shield, ExternalLink, ChevronRight } from "lucide-react";
+import { Loader2, Check, X, Shield, ExternalLink, ChevronRight, Trash2, AlertTriangle } from "lucide-react";
 import ImageLightbox from "@/components/ImageLightbox";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,14 @@ const roleLabels: Record<string, string> = {
   camera_operator: "Camera Operator", gaffer: "Gaffer",
   sound_engineer: "Sound Engineer", editor: "Editor", director: "Director",
 };
+
+const statusBadge = (status: string) => (
+  <Badge className={
+    status === "approved" ? "bg-green-600" :
+    status === "rejected" ? "bg-red-600" :
+    status === "pending" ? "bg-amber-600" : ""
+  }>{status}</Badge>
+);
 
 const ApproveRejectButtons = ({
   onApprove, onReject, loading,
@@ -96,6 +104,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [detail, setDetail] = useState<{ item: any; type: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
@@ -105,6 +114,7 @@ const Admin = () => {
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const isSuperAdmin = user?.role === "super_admin";
 
+  // ── Pending queries (approval flow) ──
   const { data: pendingLocations = [], isLoading: locLoading } = useQuery({
     queryKey: ["admin-pending-locations"],
     enabled: isAdmin,
@@ -125,6 +135,29 @@ const Admin = () => {
     enabled: isAdmin,
     queryFn: () => api.get<any[]>("/api/admin/talent/pending"),
   });
+
+  // ── All-listings queries (super_admin only) ──
+  const { data: allLocations = [], isLoading: allLocLoading } = useQuery({
+    queryKey: ["admin-all-locations"],
+    enabled: isSuperAdmin,
+    queryFn: () => api.get<any[]>("/api/admin/locations/all"),
+  });
+  const { data: allEquipment = [], isLoading: allEqLoading } = useQuery({
+    queryKey: ["admin-all-equipment"],
+    enabled: isSuperAdmin,
+    queryFn: () => api.get<any[]>("/api/admin/equipment/all"),
+  });
+  const { data: allCrew = [], isLoading: allCrewLoading } = useQuery({
+    queryKey: ["admin-all-crew"],
+    enabled: isSuperAdmin,
+    queryFn: () => api.get<any[]>("/api/admin/crew/all"),
+  });
+  const { data: allTalent = [], isLoading: allTalentLoading } = useQuery({
+    queryKey: ["admin-all-talent"],
+    enabled: isSuperAdmin,
+    queryFn: () => api.get<any[]>("/api/admin/talent/all"),
+  });
+
   const { data: allBookings = [], isLoading: bookLoading } = useQuery({
     queryKey: ["admin-bookings"],
     enabled: isAdmin,
@@ -153,6 +186,30 @@ const Admin = () => {
   const talentMutation = makeStatusMutation("talent", "admin-pending-talent");
   const bookingMutation = makeStatusMutation("bookings", "admin-bookings");
 
+  const deleteListingMutation = useMutation({
+    mutationFn: ({ type, id }: { type: string; id: string }) =>
+      api.delete(`/api/admin/${type}/${id}`),
+    onSuccess: (_, { type }) => {
+      queryClient.invalidateQueries({ queryKey: [`admin-all-${type.replace(/s$/, "")}`] });
+      queryClient.invalidateQueries({ queryKey: [`admin-pending-${type.replace(/s$/, "")}`] });
+      queryClient.invalidateQueries({ queryKey: [`admin-all-${type}`] });
+      queryClient.invalidateQueries({ queryKey: [`admin-pending-${type}`] });
+      toast.success("Deleted successfully");
+      setDeleteConfirm(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/admin/users/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("User deleted");
+      setDeleteConfirm(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const roleMutation = useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) =>
       api.patch(`/api/admin/users/${id}/role`, { role }),
@@ -176,9 +233,53 @@ const Admin = () => {
 
   const totalPending = pendingLocations.length + pendingEquipment.length + pendingCrew.length + pendingTalent.length;
 
+  const locData = isSuperAdmin ? allLocations : pendingLocations;
+  const eqData = isSuperAdmin ? allEquipment : pendingEquipment;
+  const crewData = isSuperAdmin ? allCrew : pendingCrew;
+  const talentData = isSuperAdmin ? allTalent : pendingTalent;
+  const isLocLoading = isSuperAdmin ? allLocLoading : locLoading;
+  const isEqLoading = isSuperAdmin ? allEqLoading : eqLoading;
+  const isCrewLoading = isSuperAdmin ? allCrewLoading : crewLoading;
+  const isTalentLoading = isSuperAdmin ? allTalentLoading : talentLoading;
+
   return (
     <>
     {detail && <DetailModal item={detail.item} type={detail.type} onClose={() => setDetail(null)} />}
+
+    {/* Delete confirmation modal */}
+    {deleteConfirm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 space-y-4 shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-red-500/15 p-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+            </div>
+            <h3 className="font-semibold text-foreground">Confirm Delete</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to permanently delete <span className="font-medium text-foreground">"{deleteConfirm.name}"</span>? This action cannot be undone.
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleteListingMutation.isPending || deleteUserMutation.isPending}
+              onClick={() => {
+                if (deleteConfirm.type === "users") {
+                  deleteUserMutation.mutate(deleteConfirm.id);
+                } else {
+                  deleteListingMutation.mutate({ type: deleteConfirm.type, id: deleteConfirm.id });
+                }
+              }}
+            >
+              {(deleteListingMutation.isPending || deleteUserMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Delete
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+
     <Layout>
       <div className="container py-8">
         <div className="flex items-center gap-3 mb-8">
@@ -228,8 +329,8 @@ const Admin = () => {
           <TabsContent value="locations" className="mt-4">
             <Card className="border-border/50">
               <CardContent className="p-0">
-                {locLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                  : pendingLocations.length === 0 ? <p className="p-8 text-center text-muted-foreground">No pending locations.</p>
+                {isLocLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                  : locData.length === 0 ? <p className="p-8 text-center text-muted-foreground">{isSuperAdmin ? "No locations." : "No pending locations."}</p>
                   : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -237,22 +338,33 @@ const Admin = () => {
                           <th className="p-4 text-left font-medium">Name</th>
                           <th className="p-4 text-left font-medium">City</th>
                           <th className="p-4 text-left font-medium">Owner</th>
+                          {isSuperAdmin && <th className="p-4 text-left font-medium">Status</th>}
                           <th className="p-4 text-left font-medium">Price/Day</th>
                           <th className="p-4 text-right font-medium">Actions</th>
                         </tr></thead>
                         <tbody>
-                          {pendingLocations.map((loc: any) => (
+                          {locData.map((loc: any) => (
                             <tr key={loc.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setDetail({ item: loc, type: "location" })}>
                               <td className="p-4 font-medium text-foreground flex items-center gap-1">{loc.name}<ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /></td>
                               <td className="p-4 text-muted-foreground">{loc.city}</td>
                               <td className="p-4 text-muted-foreground">{loc.first_name} {loc.last_name}</td>
+                              {isSuperAdmin && <td className="p-4">{statusBadge(loc.status)}</td>}
                               <td className="p-4 text-primary">${Number(loc.price_per_day) || 0}</td>
                               <td className="p-4" onClick={e => e.stopPropagation()}>
-                                <ApproveRejectButtons
-                                  loading={locationMutation.isPending}
-                                  onApprove={() => locationMutation.mutate({ id: loc.id, status: "approved" })}
-                                  onReject={() => locationMutation.mutate({ id: loc.id, status: "rejected" })}
-                                />
+                                <div className="flex justify-end items-center gap-2">
+                                  {loc.status === "pending" && (
+                                    <ApproveRejectButtons
+                                      loading={locationMutation.isPending}
+                                      onApprove={() => locationMutation.mutate({ id: loc.id, status: "approved" })}
+                                      onReject={() => locationMutation.mutate({ id: loc.id, status: "rejected" })}
+                                    />
+                                  )}
+                                  {isSuperAdmin && (
+                                    <Button size="sm" variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteConfirm({ type: "locations", id: loc.id, name: loc.name })}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -268,8 +380,8 @@ const Admin = () => {
           <TabsContent value="equipment" className="mt-4">
             <Card className="border-border/50">
               <CardContent className="p-0">
-                {eqLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                  : pendingEquipment.length === 0 ? <p className="p-8 text-center text-muted-foreground">No pending equipment.</p>
+                {isEqLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                  : eqData.length === 0 ? <p className="p-8 text-center text-muted-foreground">{isSuperAdmin ? "No equipment." : "No pending equipment."}</p>
                   : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -277,22 +389,33 @@ const Admin = () => {
                           <th className="p-4 text-left font-medium">Name</th>
                           <th className="p-4 text-left font-medium">Category</th>
                           <th className="p-4 text-left font-medium">Owner</th>
+                          {isSuperAdmin && <th className="p-4 text-left font-medium">Status</th>}
                           <th className="p-4 text-left font-medium">Rate/Day</th>
                           <th className="p-4 text-right font-medium">Actions</th>
                         </tr></thead>
                         <tbody>
-                          {pendingEquipment.map((eq: any) => (
+                          {eqData.map((eq: any) => (
                             <tr key={eq.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setDetail({ item: eq, type: "equipment" })}>
                               <td className="p-4 font-medium text-foreground flex items-center gap-1">{eq.name}<ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /></td>
                               <td className="p-4 text-muted-foreground capitalize">{eq.category}</td>
                               <td className="p-4 text-muted-foreground">{eq.first_name} {eq.last_name}</td>
+                              {isSuperAdmin && <td className="p-4">{statusBadge(eq.approval_status)}</td>}
                               <td className="p-4 text-primary">${Number(eq.daily_rate) || 0}</td>
                               <td className="p-4" onClick={e => e.stopPropagation()}>
-                                <ApproveRejectButtons
-                                  loading={equipmentMutation.isPending}
-                                  onApprove={() => equipmentMutation.mutate({ id: eq.id, status: "approved" })}
-                                  onReject={() => equipmentMutation.mutate({ id: eq.id, status: "rejected" })}
-                                />
+                                <div className="flex justify-end items-center gap-2">
+                                  {eq.approval_status === "pending" && (
+                                    <ApproveRejectButtons
+                                      loading={equipmentMutation.isPending}
+                                      onApprove={() => equipmentMutation.mutate({ id: eq.id, status: "approved" })}
+                                      onReject={() => equipmentMutation.mutate({ id: eq.id, status: "rejected" })}
+                                    />
+                                  )}
+                                  {isSuperAdmin && (
+                                    <Button size="sm" variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteConfirm({ type: "equipment", id: eq.id, name: eq.name })}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -308,8 +431,8 @@ const Admin = () => {
           <TabsContent value="crew" className="mt-4">
             <Card className="border-border/50">
               <CardContent className="p-0">
-                {crewLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                  : pendingCrew.length === 0 ? <p className="p-8 text-center text-muted-foreground">No pending crew profiles.</p>
+                {isCrewLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                  : crewData.length === 0 ? <p className="p-8 text-center text-muted-foreground">{isSuperAdmin ? "No crew profiles." : "No pending crew profiles."}</p>
                   : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -317,22 +440,33 @@ const Admin = () => {
                           <th className="p-4 text-left font-medium">Name</th>
                           <th className="p-4 text-left font-medium">Role</th>
                           <th className="p-4 text-left font-medium">Email</th>
+                          {isSuperAdmin && <th className="p-4 text-left font-medium">Status</th>}
                           <th className="p-4 text-left font-medium">Experience</th>
                           <th className="p-4 text-right font-medium">Actions</th>
                         </tr></thead>
                         <tbody>
-                          {pendingCrew.map((c: any) => (
+                          {crewData.map((c: any) => (
                             <tr key={c.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setDetail({ item: c, type: "crew" })}>
                               <td className="p-4 font-medium text-foreground flex items-center gap-1">{c.first_name} {c.last_name}<ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /></td>
                               <td className="p-4 text-muted-foreground">{roleLabels[c.role] || c.role}</td>
                               <td className="p-4 text-muted-foreground">{c.email}</td>
+                              {isSuperAdmin && <td className="p-4">{statusBadge(c.status)}</td>}
                               <td className="p-4 text-muted-foreground">{c.experience_years || 0} yrs</td>
                               <td className="p-4" onClick={e => e.stopPropagation()}>
-                                <ApproveRejectButtons
-                                  loading={crewMutation.isPending}
-                                  onApprove={() => crewMutation.mutate({ id: c.id, status: "approved" })}
-                                  onReject={() => crewMutation.mutate({ id: c.id, status: "rejected" })}
-                                />
+                                <div className="flex justify-end items-center gap-2">
+                                  {c.status === "pending" && (
+                                    <ApproveRejectButtons
+                                      loading={crewMutation.isPending}
+                                      onApprove={() => crewMutation.mutate({ id: c.id, status: "approved" })}
+                                      onReject={() => crewMutation.mutate({ id: c.id, status: "rejected" })}
+                                    />
+                                  )}
+                                  {isSuperAdmin && (
+                                    <Button size="sm" variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteConfirm({ type: "crew", id: c.id, name: `${c.first_name} ${c.last_name}` })}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -348,8 +482,8 @@ const Admin = () => {
           <TabsContent value="talent" className="mt-4">
             <Card className="border-border/50">
               <CardContent className="p-0">
-                {talentLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                  : pendingTalent.length === 0 ? <p className="p-8 text-center text-muted-foreground">No pending talent profiles.</p>
+                {isTalentLoading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                  : talentData.length === 0 ? <p className="p-8 text-center text-muted-foreground">{isSuperAdmin ? "No talent profiles." : "No pending talent profiles."}</p>
                   : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -358,21 +492,32 @@ const Admin = () => {
                           <th className="p-4 text-left font-medium">Type</th>
                           <th className="p-4 text-left font-medium">Gender</th>
                           <th className="p-4 text-left font-medium">Email</th>
+                          {isSuperAdmin && <th className="p-4 text-left font-medium">Status</th>}
                           <th className="p-4 text-right font-medium">Actions</th>
                         </tr></thead>
                         <tbody>
-                          {pendingTalent.map((t: any) => (
+                          {talentData.map((t: any) => (
                             <tr key={t.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setDetail({ item: t, type: "talent" })}>
                               <td className="p-4 font-medium text-foreground flex items-center gap-1">{t.first_name} {t.last_name}<ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /></td>
                               <td className="p-4"><Badge variant="secondary" className="capitalize">{t.profile_type}</Badge></td>
                               <td className="p-4 text-muted-foreground capitalize">{t.gender || "—"}</td>
                               <td className="p-4 text-muted-foreground">{t.email}</td>
+                              {isSuperAdmin && <td className="p-4">{statusBadge(t.status)}</td>}
                               <td className="p-4" onClick={e => e.stopPropagation()}>
-                                <ApproveRejectButtons
-                                  loading={talentMutation.isPending}
-                                  onApprove={() => talentMutation.mutate({ id: t.id, status: "approved" })}
-                                  onReject={() => talentMutation.mutate({ id: t.id, status: "rejected" })}
-                                />
+                                <div className="flex justify-end items-center gap-2">
+                                  {t.status === "pending" && (
+                                    <ApproveRejectButtons
+                                      loading={talentMutation.isPending}
+                                      onApprove={() => talentMutation.mutate({ id: t.id, status: "approved" })}
+                                      onReject={() => talentMutation.mutate({ id: t.id, status: "rejected" })}
+                                    />
+                                  )}
+                                  {isSuperAdmin && (
+                                    <Button size="sm" variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteConfirm({ type: "talent", id: t.id, name: `${t.first_name} ${t.last_name}` })}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -449,7 +594,7 @@ const Admin = () => {
                           <th className="p-4 text-left font-medium">Verified</th>
                           <th className="p-4 text-left font-medium">Joined</th>
                           <th className="p-4 text-left font-medium">Role</th>
-                          <th className="p-4 text-right font-medium">Profile</th>
+                          <th className="p-4 text-right font-medium">Actions</th>
                         </tr></thead>
                         <tbody>
                           {allUsers.map((u: any) => (
@@ -486,11 +631,18 @@ const Admin = () => {
                                 )}
                               </td>
                               <td className="p-4 text-right">
-                                <Link to={`/profile/${u.id}`}>
-                                  <Button size="sm" variant="outline" className="gap-1.5">
-                                    <ExternalLink className="h-3.5 w-3.5" /> View
-                                  </Button>
-                                </Link>
+                                <div className="flex justify-end items-center gap-2">
+                                  <Link to={`/profile/${u.id}`}>
+                                    <Button size="sm" variant="outline" className="gap-1.5">
+                                      <ExternalLink className="h-3.5 w-3.5" /> View
+                                    </Button>
+                                  </Link>
+                                  {isSuperAdmin && u.role !== "super_admin" && u.id !== user?.id && (
+                                    <Button size="sm" variant="outline" className="text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setDeleteConfirm({ type: "users", id: u.id, name: `${u.first_name} ${u.last_name}` })}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}

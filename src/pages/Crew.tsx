@@ -3,10 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Search, Briefcase, Loader2 } from "lucide-react";
+import BookingDialog from "@/components/BookingDialog";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import api, { resolveImageUrl } from "@/integrations/api/client";
 
@@ -30,6 +33,7 @@ const Crew = () => {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   const { data: crew = [], isLoading } = useQuery({
     queryKey: ["crew_profiles"],
@@ -78,9 +82,9 @@ const Crew = () => {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((member: any) => (
-                <Link key={member.id} to={`/profile/${member.user_id}`}>
-                  <Card className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold cursor-pointer">
-                    <CardContent className="p-6">
+                <Card key={member.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
+                  <CardContent className="p-6">
+                    <Link to={`/profile/${member.user_id}`} className="block">
                       <div className="flex items-start gap-4">
                         <img src={resolveImageUrl(member.portfolio_urls?.[0] || member.avatar_url || fallbackAvatar)} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).src = fallbackAvatar; }} />
                         <div className="flex-1">
@@ -101,12 +105,25 @@ const Crew = () => {
                           {member.skills.slice(0, 3).map((s: string) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
                         </div>
                       )}
-                      <p className="mt-4 text-xs text-primary font-medium border-t border-border/50 pt-3">
-                        {t('crew.viewProfile')}
+                      <p className="mt-3 text-xs text-muted-foreground hover:text-primary transition-colors">
+                        {t('crew.viewProfile')} →
                       </p>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </Link>
+                    <div className="mt-3 border-t border-border/50 pt-3">
+                      {user?.id === member.user_id ? (
+                        <Button disabled className="w-full opacity-50 cursor-not-allowed">Your Profile</Button>
+                      ) : (
+                        <BookingDialog
+                          serviceId={member.id}
+                          serviceType="crew"
+                          providerId={member.user_id}
+                          pricePerDay={Number(member.daily_rate) || 0}
+                          triggerLabel="Book Crew Member"
+                        />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}

@@ -200,4 +200,127 @@ router.patch('/users/:id/role', async (req, res: Response<ApiResponse<any>>) => 
   }
 });
 
+// ── Super Admin: All listings ─────────────────────────────────────────────────
+
+async function countActiveBookings(serviceId: string): Promise<number> {
+  const { rows } = await pool.query(
+    `SELECT COUNT(*) AS c FROM bookings WHERE service_id = $1 AND status IN ('pending','confirmed')`,
+    [serviceId]
+  );
+  return parseInt(rows[0].c, 10);
+}
+
+router.get('/locations/all', async (req, res: Response<ApiResponse<any[]>>) => {
+  if (req.user?.role !== 'super_admin') return res.status(403).json({ success: false, error: 'Super admin only' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT l.*, u.first_name, u.last_name, u.email FROM locations l JOIN users u ON l.user_id = u.id ORDER BY l.created_at DESC`
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed' }); }
+});
+
+router.get('/equipment/all', async (req, res: Response<ApiResponse<any[]>>) => {
+  if (req.user?.role !== 'super_admin') return res.status(403).json({ success: false, error: 'Super admin only' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT e.*, u.first_name, u.last_name, u.email FROM equipment e JOIN users u ON e.user_id = u.id ORDER BY e.created_at DESC`
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed' }); }
+});
+
+router.get('/crew/all', async (req, res: Response<ApiResponse<any[]>>) => {
+  if (req.user?.role !== 'super_admin') return res.status(403).json({ success: false, error: 'Super admin only' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT cp.*, u.first_name, u.last_name, u.email FROM crew_profiles cp JOIN users u ON cp.user_id = u.id ORDER BY cp.created_at DESC`
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed' }); }
+});
+
+router.get('/talent/all', async (req, res: Response<ApiResponse<any[]>>) => {
+  if (req.user?.role !== 'super_admin') return res.status(403).json({ success: false, error: 'Super admin only' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT tp.*, u.first_name, u.last_name, u.email FROM talent_profiles tp JOIN users u ON tp.user_id = u.id ORDER BY tp.created_at DESC`
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed' }); }
+});
+
+// ── Super Admin: Delete listings ──────────────────────────────────────────────
+
+router.delete('/locations/:id', async (req, res: Response<ApiResponse<null>>) => {
+  if (req.user?.role !== 'super_admin') return res.status(403).json({ success: false, error: 'Super admin only' });
+  try {
+    const active = await countActiveBookings(req.params.id);
+    if (active > 0) return res.status(409).json({ success: false, error: `Cannot delete: this location has ${active} active booking(s).` });
+    const { rows } = await pool.query('SELECT images FROM locations WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    await pool.query('DELETE FROM locations WHERE id = $1', [req.params.id]);
+    const { deleteStorageFiles } = await import('../utils/storage.js');
+    await deleteStorageFiles(rows[0].images || []);
+    res.json({ success: true, data: null });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to delete' }); }
+});
+
+router.delete('/equipment/:id', async (req, res: Response<ApiResponse<null>>) => {
+  if (req.user?.role !== 'super_admin') return res.status(403).json({ success: false, error: 'Super admin only' });
+  try {
+    const active = await countActiveBookings(req.params.id);
+    if (active > 0) return res.status(409).json({ success: false, error: `Cannot delete: this equipment has ${active} active booking(s).` });
+    const { rows } = await pool.query('SELECT images FROM equipment WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    await pool.query('DELETE FROM equipment WHERE id = $1', [req.params.id]);
+    const { deleteStorageFiles } = await import('../utils/storage.js');
+    await deleteStorageFiles(rows[0].images || []);
+    res.json({ success: true, data: null });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to delete' }); }
+});
+
+router.delete('/crew/:id', async (req, res: Response<ApiResponse<null>>) => {
+  if (req.user?.role !== 'super_admin') return res.status(403).json({ success: false, error: 'Super admin only' });
+  try {
+    const active = await countActiveBookings(req.params.id);
+    if (active > 0) return res.status(409).json({ success: false, error: `Cannot delete: this crew profile has ${active} active booking(s).` });
+    const { rows } = await pool.query('SELECT portfolio_urls FROM crew_profiles WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    await pool.query('DELETE FROM crew_profiles WHERE id = $1', [req.params.id]);
+    const { deleteStorageFiles } = await import('../utils/storage.js');
+    await deleteStorageFiles(rows[0].portfolio_urls || []);
+    res.json({ success: true, data: null });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to delete' }); }
+});
+
+router.delete('/talent/:id', async (req, res: Response<ApiResponse<null>>) => {
+  if (req.user?.role !== 'super_admin') return res.status(403).json({ success: false, error: 'Super admin only' });
+  try {
+    const active = await countActiveBookings(req.params.id);
+    if (active > 0) return res.status(409).json({ success: false, error: `Cannot delete: this talent profile has ${active} active booking(s).` });
+    const { rows } = await pool.query('SELECT portfolio_urls FROM talent_profiles WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    await pool.query('DELETE FROM talent_profiles WHERE id = $1', [req.params.id]);
+    const { deleteStorageFiles } = await import('../utils/storage.js');
+    await deleteStorageFiles(rows[0].portfolio_urls || []);
+    res.json({ success: true, data: null });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to delete' }); }
+});
+
+// ── Super Admin: Delete user ──────────────────────────────────────────────────
+router.delete('/users/:id', async (req, res: Response<ApiResponse<null>>) => {
+  if (req.user?.role !== 'super_admin') return res.status(403).json({ success: false, error: 'Super admin only' });
+  try {
+    if (req.params.id === req.user!.userId)
+      return res.status(400).json({ success: false, error: 'Cannot delete your own account' });
+    const { rows } = await pool.query('SELECT role FROM users WHERE id = $1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'User not found' });
+    if (rows[0].role === 'super_admin')
+      return res.status(403).json({ success: false, error: 'Cannot delete another super admin' });
+    await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    res.json({ success: true, data: null });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to delete user' }); }
+});
+
 export default router;

@@ -3,11 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Search, Ruler, Loader2 } from "lucide-react";
 import ImageLightbox from "@/components/ImageLightbox";
+import BookingDialog from "@/components/BookingDialog";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import api, { resolveImageUrl } from "@/integrations/api/client";
 
@@ -19,6 +22,7 @@ const Models = () => {
   const [skinFilter, setSkinFilter] = useState("all");
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   const { data: allTalent = [], isLoading } = useQuery({
     queryKey: ["talent_profiles", "model"],
@@ -82,21 +86,21 @@ const Models = () => {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((model: any) => (
-                <Link key={model.id} to={`/profile/${model.user_id}`}>
-                  <Card className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold cursor-pointer">
-                    <div
-                      className="relative h-80 overflow-hidden cursor-zoom-in"
-                      onClick={(e) => { e.preventDefault(); setLightbox({ images: model.portfolio_urls?.length ? model.portfolio_urls : [fallbackImage], index: 0 }); }}
-                    >
-                      <img
-                        src={resolveImageUrl(model.portfolio_urls?.[0] || fallbackImage)}
-                        alt="Model"
-                        className="h-full w-full object-cover object-[center_15%] transition-transform duration-500 group-hover:scale-105"
-                        loading="lazy"
-                        onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage; }}
-                      />
-                    </div>
-                    <CardContent className="p-5">
+                <Card key={model.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
+                  <div
+                    className="relative h-80 overflow-hidden cursor-zoom-in"
+                    onClick={() => setLightbox({ images: model.portfolio_urls?.length ? model.portfolio_urls : [fallbackImage], index: 0 })}
+                  >
+                    <img
+                      src={resolveImageUrl(model.portfolio_urls?.[0] || fallbackImage)}
+                      alt="Model"
+                      className="h-full w-full object-cover object-[center_15%] transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      onError={(e) => { (e.target as HTMLImageElement).src = fallbackImage; }}
+                    />
+                  </div>
+                  <CardContent className="p-5">
+                    <Link to={`/profile/${model.user_id}`} className="block hover:opacity-80 transition-opacity">
                       <h3 className="font-semibold text-foreground text-lg">
                         {model.first_name || "—"} {model.last_name || ""}
                       </h3>
@@ -110,12 +114,25 @@ const Models = () => {
                         {model.daily_rate && <span className="text-primary font-semibold">${Number(model.daily_rate)}{t('equipment.perDay')}</span>}
                       </div>
                       <p className="mt-2 text-sm text-primary font-medium">{model.experience_years || 0} {t('models.yearsExp')}</p>
-                      <p className="mt-3 text-xs text-primary font-medium border-t border-border/50 pt-3">
-                        {t('models.viewProfile')}
+                      <p className="mt-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+                        {t('models.viewProfile')} →
                       </p>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </Link>
+                    <div className="mt-3 border-t border-border/50 pt-3">
+                      {user?.id === model.user_id ? (
+                        <Button disabled className="w-full opacity-50 cursor-not-allowed">Your Profile</Button>
+                      ) : (
+                        <BookingDialog
+                          serviceId={model.id}
+                          serviceType="talent"
+                          providerId={model.user_id}
+                          pricePerDay={Number(model.daily_rate) || 0}
+                          triggerLabel="Book Model"
+                        />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}

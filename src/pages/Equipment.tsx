@@ -3,12 +3,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Search, Camera, Loader2, User } from "lucide-react";
 import ImageCarousel from "@/components/ImageCarousel";
 import ImageLightbox from "@/components/ImageLightbox";
+import BookingDialog from "@/components/BookingDialog";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import api from "@/integrations/api/client";
 
@@ -19,6 +22,7 @@ const Equipment = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   const { data: equipment = [], isLoading } = useQuery({
     queryKey: ["equipment"],
@@ -106,6 +110,19 @@ const Equipment = () => {
                         {eq.first_name || "—"} {eq.last_name || ""}
                       </Link>
                     )}
+                    <div className="mt-4 border-t border-border/50 pt-3">
+                      {user?.id === eq.user_id ? (
+                        <Button disabled className="w-full opacity-50 cursor-not-allowed">Your Equipment</Button>
+                      ) : (
+                        <BookingDialog
+                          serviceId={eq.id}
+                          serviceType="equipment"
+                          providerId={eq.user_id}
+                          pricePerDay={Number(eq.daily_rate) || 0}
+                          triggerLabel="Book Equipment"
+                        />
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}

@@ -5,11 +5,11 @@ import { Link } from "react-router-dom";
 import { MapPin, Camera, Users, Clapperboard, Star, ArrowRight, Shield, Clock, CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import MarqueeSection from "@/components/MarqueeSection";
-
-
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   const services = [
     { icon: MapPin, titleKey: "home.services.locations.title", descKey: "home.services.locations.desc", link: "/locations" },
@@ -153,8 +153,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="border-t border-border bg-card/50 py-24">
+      {/* CTA — hidden for logged-in users */}
+      {!user && <section className="border-t border-border bg-card/50 py-24">
         <div className="container text-center">
           <h2 className="font-display text-4xl text-foreground sm:text-5xl">
             {t('home.ctaTitle')} <span className="text-gradient-gold">{t('home.ctaHighlight')}</span>{t('home.ctaTitleEnd')}
@@ -173,7 +173,7 @@ const Index = () => {
             </Link>
           </div>
         </div>
-      </section>
+      </section>}
     </Layout>
   );
 };

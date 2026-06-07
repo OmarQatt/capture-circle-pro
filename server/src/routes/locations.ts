@@ -90,10 +90,12 @@ router.patch('/:id', authenticate, async (req, res: Response<ApiResponse<Locatio
 
 router.delete('/:id', authenticate, async (req, res: Response<ApiResponse<null>>) => {
   try {
-    const { rows } = await pool.query('SELECT user_id FROM locations WHERE id = $1', [req.params.id]);
+    const { rows } = await pool.query('SELECT user_id, images FROM locations WHERE id = $1', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ success: false, error: 'Location not found' });
     if (rows[0].user_id !== req.user!.userId) return res.status(403).json({ success: false, error: 'Unauthorized' });
     await pool.query('DELETE FROM locations WHERE id = $1', [req.params.id]);
+    const { deleteStorageFiles } = await import('../utils/storage.js');
+    await deleteStorageFiles(rows[0].images || []);
     res.json({ success: true, data: null });
   } catch (err) {
     console.error(err);
