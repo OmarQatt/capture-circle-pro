@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Locations from "./pages/Locations";
 import Equipment from "./pages/Equipment";
+import EquipmentDetail from "./pages/EquipmentDetail";
 import Models from "./pages/Models";
 import Crew from "./pages/Crew";
 import Login from "./pages/Login";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/locations" element={<Locations />} />
             <Route path="/locations/:id" element={<LocationDetail />} />
             <Route path="/equipment" element={<Equipment />} />
+            <Route path="/equipment/:id" element={<EquipmentDetail />} />
             <Route path="/models" element={<Models />} />
             <Route path="/crew" element={<Crew />} />
             <Route path="/login" element={<Login />} />

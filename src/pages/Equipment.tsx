@@ -77,24 +77,28 @@ const Equipment = () => {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((eq) => (
                 <Card key={eq.id} className="group overflow-hidden border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-gold">
-                  <div className="relative h-52 overflow-hidden bg-muted/20">
+                  <Link to={`/equipment/${eq.id}`} className="block relative h-52 overflow-hidden bg-muted/20">
                     <ImageCarousel
                       images={eq.images?.length ? eq.images : [fallbackImage]}
                       alt={eq.name}
                       className="h-full w-full object-contain transition-transform group-hover:scale-105"
-                      onImageClick={(i) => setLightbox({ images: eq.images?.length ? eq.images : [fallbackImage], index: i })}
+                      onImageClick={(i) => { setLightbox({ images: eq.images?.length ? eq.images : [fallbackImage], index: i }); }}
                     />
                     <Badge className={`absolute top-3 end-3 z-10 ${eq.status === "available" ? "bg-green-600" : "bg-red-600"}`}>
                       {eq.status}
                     </Badge>
-                  </div>
+                  </Link>
                   <CardContent className="p-5">
                     <p className="text-xs text-muted-foreground flex items-center gap-1"><Camera className="h-3 w-3" />{eq.brand || "—"}</p>
-                    <h3 className="mt-1 font-semibold text-foreground">{eq.name}</h3>
+                    <Link to={`/equipment/${eq.id}`} className="block hover:text-primary transition-colors">
+                      <h3 className="mt-1 font-semibold text-foreground">{eq.name}</h3>
+                    </Link>
                     <p className="text-sm text-muted-foreground">{eq.category}</p>
                     <div className="mt-3 flex items-center justify-between">
                       <p className="text-lg font-semibold text-primary">${Number(eq.daily_rate) || 0}<span className="text-sm text-muted-foreground">{t('equipment.perDay')}</span></p>
-                      <Badge variant="outline">{eq.condition}</Badge>
+                      <Link to={`/equipment/${eq.id}`}>
+                        <Button size="sm" variant="outline">View Details</Button>
+                      </Link>
                     </div>
                     {eq.user_id && (
                       <Link
