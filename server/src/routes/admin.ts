@@ -138,7 +138,27 @@ router.patch('/talent/:id/status', async (req, res: Response<ApiResponse<any>>) 
 router.get('/bookings', async (req, res: Response<ApiResponse<any[]>>) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
-    const { rows } = await pool.query('SELECT * FROM bookings ORDER BY created_at DESC LIMIT $1', [limit]);
+    const { rows } = await pool.query(`
+      SELECT
+        b.*,
+        c.first_name  AS client_first_name,
+        c.last_name   AS client_last_name,
+        c.email       AS client_email,
+        p.first_name  AS provider_first_name,
+        p.last_name   AS provider_last_name,
+        p.email       AS provider_email,
+        COALESCE(
+          (SELECT l.name  FROM locations  l WHERE l.id = b.service_id LIMIT 1),
+          (SELECT e.name  FROM equipment  e WHERE e.id = b.service_id LIMIT 1),
+          (SELECT CONCAT(pu.first_name,' ',pu.last_name) FROM crew_profiles cp JOIN users pu ON pu.id = cp.user_id WHERE cp.id = b.service_id LIMIT 1),
+          (SELECT CONCAT(tu.first_name,' ',tu.last_name) FROM talent_profiles tp JOIN users tu ON tu.id = tp.user_id WHERE tp.id = b.service_id LIMIT 1)
+        ) AS service_name
+      FROM bookings b
+      JOIN users c ON c.id = b.client_id
+      JOIN users p ON p.id = b.provider_id
+      ORDER BY b.created_at DESC
+      LIMIT $1
+    `, [limit]);
     res.json({ success: true, data: rows, meta: { total: rows.length } });
   } catch (err) {
     console.error(err);

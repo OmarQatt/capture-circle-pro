@@ -590,19 +590,38 @@ const Admin = () => {
                   : allBookings.length === 0 ? <p className="p-8 text-center text-muted-foreground">No bookings yet.</p>
                   : (
                     <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead><tr className="border-b border-border text-sm text-muted-foreground">
-                          <th className="p-4 text-left font-medium">Type</th>
+                      <table className="w-full text-sm">
+                        <thead><tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wide">
+                          <th className="p-4 text-left font-medium">Service</th>
+                          <th className="p-4 text-left font-medium">Client</th>
+                          <th className="p-4 text-left font-medium">Provider</th>
                           <th className="p-4 text-left font-medium">Dates</th>
+                          <th className="p-4 text-left font-medium">Type</th>
                           <th className="p-4 text-left font-medium">Status</th>
-                          <th className="p-4 text-right font-medium">Amount</th>
+                          <th className="p-4 text-left font-medium">Amount</th>
+                          <th className="p-4 text-left font-medium">Notes</th>
                           <th className="p-4 text-right font-medium">Actions</th>
                         </tr></thead>
                         <tbody>
                           {allBookings.map((b: any) => (
-                            <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30">
-                              <td className="p-4"><Badge variant="outline">{b.service_type}</Badge></td>
-                              <td className="p-4 text-muted-foreground">{b.start_date?.slice(0, 10)} → {b.end_date?.slice(0, 10)}</td>
+                            <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30 align-top">
+                              <td className="p-4">
+                                <p className="font-medium text-foreground">{b.service_name || "—"}</p>
+                                <Badge variant="outline" className="mt-1 text-xs">{b.service_type}</Badge>
+                              </td>
+                              <td className="p-4">
+                                <p className="font-medium text-foreground">{b.client_first_name} {b.client_last_name}</p>
+                                <p className="text-xs text-muted-foreground">{b.client_email}</p>
+                              </td>
+                              <td className="p-4">
+                                <p className="font-medium text-foreground">{b.provider_first_name} {b.provider_last_name}</p>
+                                <p className="text-xs text-muted-foreground">{b.provider_email}</p>
+                              </td>
+                              <td className="p-4 text-muted-foreground whitespace-nowrap">
+                                <p>{b.start_date?.slice(0, 10)}</p>
+                                <p className="text-xs">→ {b.end_date?.slice(0, 10)}</p>
+                              </td>
+                              <td className="p-4 text-muted-foreground">{b.booking_type || "—"}</td>
                               <td className="p-4">
                                 <Badge className={
                                   b.status === "confirmed" ? "bg-green-600" :
@@ -610,17 +629,40 @@ const Admin = () => {
                                   b.status === "completed" ? "bg-blue-600" : ""
                                 }>{b.status}</Badge>
                               </td>
-                              <td className="p-4 text-right font-semibold text-primary">${Number(b.total_price) || 0}</td>
+                              <td className="p-4 font-semibold text-primary whitespace-nowrap">${Number(b.total_price) || 0}</td>
+                              <td className="p-4 text-muted-foreground max-w-[160px]">
+                                <p className="line-clamp-2 text-xs">{b.notes || "—"}</p>
+                              </td>
                               <td className="p-4 text-right">
-                                {b.status === "pending" ? (
-                                  <ApproveRejectButtons
-                                    loading={bookingMutation.isPending}
-                                    onApprove={() => bookingMutation.mutate({ id: b.id, status: "confirmed" })}
-                                    onReject={() => bookingMutation.mutate({ id: b.id, status: "cancelled" })}
-                                  />
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
+                                <div className="flex items-center justify-end gap-2">
+                                  {b.status === "pending" && (
+                                    <>
+                                      <Button size="sm" className="h-7 bg-green-600 hover:bg-green-700 text-white px-2 text-xs" disabled={bookingMutation.isPending}
+                                        onClick={() => bookingMutation.mutate({ id: b.id, status: "confirmed" })}>
+                                        <Check className="h-3 w-3 mr-1" /> Confirm
+                                      </Button>
+                                      <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" disabled={bookingMutation.isPending}
+                                        onClick={() => bookingMutation.mutate({ id: b.id, status: "cancelled" })}>
+                                        <X className="h-3 w-3 mr-1" /> Cancel
+                                      </Button>
+                                    </>
+                                  )}
+                                  {b.status === "confirmed" && (
+                                    <>
+                                      <Button size="sm" className="h-7 bg-blue-600 hover:bg-blue-700 text-white px-2 text-xs" disabled={bookingMutation.isPending}
+                                        onClick={() => bookingMutation.mutate({ id: b.id, status: "completed" })}>
+                                        <Check className="h-3 w-3 mr-1" /> Complete
+                                      </Button>
+                                      <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" disabled={bookingMutation.isPending}
+                                        onClick={() => bookingMutation.mutate({ id: b.id, status: "cancelled" })}>
+                                        <X className="h-3 w-3 mr-1" /> Cancel
+                                      </Button>
+                                    </>
+                                  )}
+                                  {(b.status === "completed" || b.status === "cancelled") && (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
