@@ -87,7 +87,7 @@ const Contact = () => {
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
                     <Label>Full Name</Label>
-                    <Input className="mt-1" placeholder="Omar Qattam" value={name} onChange={e => setName(e.target.value)} required />
+                    <Input className="mt-1" placeholder="Jane Smith" value={name} onChange={e => setName(e.target.value)} required />
                   </div>
                   <div>
                     <Label>Email Address</Label>
