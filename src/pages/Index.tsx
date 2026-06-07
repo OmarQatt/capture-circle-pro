@@ -51,7 +51,7 @@ const Index = () => {
               {t('home.heroDesc')}
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link to="/signup">
+              <Link to={user ? "/locations" : "/signup"}>
                 <Button size="lg" className="bg-gradient-gold text-lg font-semibold text-primary-foreground shadow-gold hover:opacity-90">
                   {t('home.startBooking')} <ArrowRight className="ms-2 h-5 w-5 rtl-flip" />
                 </Button>
