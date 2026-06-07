@@ -12,7 +12,8 @@ import { useRef, useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "sonner";
-import api from "@/integrations/api/client";
+import api, { resolveImageUrl } from "@/integrations/api/client";
+import ImageLightbox from "@/components/ImageLightbox";
 import { useAuth } from "@/contexts/AuthContext";
 import ImageUpload from "@/components/ImageUpload";
 
@@ -34,6 +35,7 @@ const UserProfile = () => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   // Portfolio edit state (own profile only)
   const [portfolioUrls, setPortfolioUrls] = useState<string[] | null>(null);
@@ -161,6 +163,10 @@ const UserProfile = () => {
     : null;
 
   return (
+    <>
+    {lightbox && (
+      <ImageLightbox images={lightbox.images} initialIndex={lightbox.index} onClose={() => setLightbox(null)} />
+    )}
     <Layout>
       {/* Hero */}
       <section className="border-b border-border bg-card/30 py-16">
@@ -313,9 +319,12 @@ const UserProfile = () => {
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {displayPortfolio.map((url: string, i: number) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="group block overflow-hidden rounded-lg border border-border/50">
-                    <img src={url} alt="" className="h-48 w-full object-cover transition-transform group-hover:scale-105" />
-                  </a>
+                  <div key={i} className="group cursor-zoom-in overflow-hidden rounded-lg border border-border/50 bg-muted/20"
+                    onClick={() => setLightbox({ images: displayPortfolio, index: i })}>
+                    <img src={resolveImageUrl(url)} alt=""
+                      className="h-48 w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  </div>
                 ))}
               </div>
             )}
@@ -350,7 +359,12 @@ const UserProfile = () => {
                     {c.portfolio_urls?.length > 0 && (
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                         {c.portfolio_urls.map((url: string, i: number) => (
-                          <img key={i} src={url} alt="" className="h-32 w-full rounded-lg object-cover" />
+                          <div key={i} className="cursor-zoom-in overflow-hidden rounded-lg border border-border/50 bg-muted/20 h-32"
+                            onClick={() => setLightbox({ images: c.portfolio_urls, index: i })}>
+                            <img src={resolveImageUrl(url)} alt=""
+                              className="h-full w-full object-contain"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          </div>
                         ))}
                       </div>
                     )}
@@ -391,7 +405,12 @@ const UserProfile = () => {
                 {talent.portfolio_urls?.length > 0 && (
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {talent.portfolio_urls.map((url: string, i: number) => (
-                      <img key={i} src={url} alt="" className="h-48 w-full rounded-lg object-cover" />
+                      <div key={i} className="cursor-zoom-in overflow-hidden rounded-lg border border-border/50 bg-muted/20 h-64"
+                        onClick={() => setLightbox({ images: talent.portfolio_urls, index: i })}>
+                        <img src={resolveImageUrl(url)} alt=""
+                          className="h-full w-full object-contain"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      </div>
                     ))}
                   </div>
                 )}
@@ -478,6 +497,7 @@ const UserProfile = () => {
         )}
       </div>
     </Layout>
+    </>
   );
 };
 

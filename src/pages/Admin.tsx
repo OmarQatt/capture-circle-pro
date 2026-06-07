@@ -4,6 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Check, X, Shield, ExternalLink, ChevronRight, Trash2, AlertTriangle } from "lucide-react";
 import ImageLightbox from "@/components/ImageLightbox";
 import { useState } from "react";
@@ -41,6 +44,47 @@ const ApproveRejectButtons = ({
     </Button>
   </div>
 );
+
+const RejectReasonModal = ({
+  onConfirm, onClose, loading,
+}: { onConfirm: (reason: string) => void; onClose: () => void; loading: boolean }) => {
+  const [reason, setReason] = useState("");
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+      <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 space-y-4 shadow-xl">
+        <div className="flex items-center gap-2">
+          <X className="h-5 w-5 text-red-500" />
+          <h3 className="font-semibold text-foreground">Reject Listing</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Provide a reason for rejection. This will be shown to the listing owner so they can fix the issue and resubmit.
+        </p>
+        <div>
+          <Label className="text-sm">Rejection Reason <span className="text-red-500">*</span></Label>
+          <Textarea
+            className="mt-1"
+            rows={3}
+            placeholder="e.g. Photos are too dark, description is incomplete, pricing is missing..."
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button
+            variant="destructive" className="flex-1"
+            disabled={loading || !reason.trim()}
+            onClick={() => onConfirm(reason.trim())}
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+            Reject Listing
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const DetailModal = ({ item, type, onClose }: { item: any; type: string; onClose: () => void }) => {
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
@@ -105,6 +149,7 @@ const Admin = () => {
   const queryClient = useQueryClient();
   const [detail, setDetail] = useState<{ item: any; type: string } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: string; name: string } | null>(null);
+  const [rejectModal, setRejectModal] = useState<{ id: string; mutate: (p: any) => void } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
@@ -171,10 +216,11 @@ const Admin = () => {
 
   const makeStatusMutation = (endpoint: string, queryKey: string) =>
     useMutation({
-      mutationFn: ({ id, status }: { id: string; status: string }) =>
-        api.patch(`/api/admin/${endpoint}/${id}/status`, { status }),
+      mutationFn: ({ id, status, rejection_reason }: { id: string; status: string; rejection_reason?: string }) =>
+        api.patch(`/api/admin/${endpoint}/${id}/status`, { status, rejection_reason }),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [queryKey] });
+        setRejectModal(null);
         toast.success("Status updated");
       },
       onError: (err: any) => toast.error("Failed: " + err.message),
@@ -245,6 +291,13 @@ const Admin = () => {
   return (
     <>
     {detail && <DetailModal item={detail.item} type={detail.type} onClose={() => setDetail(null)} />}
+    {rejectModal && (
+      <RejectReasonModal
+        loading={locationMutation.isPending || equipmentMutation.isPending || crewMutation.isPending || talentMutation.isPending}
+        onClose={() => setRejectModal(null)}
+        onConfirm={(reason) => rejectModal.mutate({ id: rejectModal.id, status: "rejected", rejection_reason: reason })}
+      />
+    )}
 
     {/* Delete confirmation modal */}
     {deleteConfirm && (
@@ -356,7 +409,7 @@ const Admin = () => {
                                     <ApproveRejectButtons
                                       loading={locationMutation.isPending}
                                       onApprove={() => locationMutation.mutate({ id: loc.id, status: "approved" })}
-                                      onReject={() => locationMutation.mutate({ id: loc.id, status: "rejected" })}
+                                      onReject={() => setRejectModal({ id: loc.id, mutate: locationMutation.mutate })}
                                     />
                                   )}
                                   {isSuperAdmin && (
@@ -407,7 +460,7 @@ const Admin = () => {
                                     <ApproveRejectButtons
                                       loading={equipmentMutation.isPending}
                                       onApprove={() => equipmentMutation.mutate({ id: eq.id, status: "approved" })}
-                                      onReject={() => equipmentMutation.mutate({ id: eq.id, status: "rejected" })}
+                                      onReject={() => setRejectModal({ id: eq.id, mutate: equipmentMutation.mutate })}
                                     />
                                   )}
                                   {isSuperAdmin && (
@@ -458,7 +511,7 @@ const Admin = () => {
                                     <ApproveRejectButtons
                                       loading={crewMutation.isPending}
                                       onApprove={() => crewMutation.mutate({ id: c.id, status: "approved" })}
-                                      onReject={() => crewMutation.mutate({ id: c.id, status: "rejected" })}
+                                      onReject={() => setRejectModal({ id: c.id, mutate: crewMutation.mutate })}
                                     />
                                   )}
                                   {isSuperAdmin && (
@@ -509,7 +562,7 @@ const Admin = () => {
                                     <ApproveRejectButtons
                                       loading={talentMutation.isPending}
                                       onApprove={() => talentMutation.mutate({ id: t.id, status: "approved" })}
-                                      onReject={() => talentMutation.mutate({ id: t.id, status: "rejected" })}
+                                      onReject={() => setRejectModal({ id: t.id, mutate: talentMutation.mutate })}
                                     />
                                   )}
                                   {isSuperAdmin && (

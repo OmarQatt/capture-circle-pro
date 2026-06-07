@@ -24,7 +24,7 @@ const categories = [
 
 const emptyForm = {
   name: "", description: "", address: "", city: "",
-  country: "Saudi Arabia", category: "studio",
+  country: "Jordan", category: "studio",
   price_per_6hours: "", price_per_12hours: "", price_per_day: "",
 };
 
@@ -55,7 +55,7 @@ const AddLocationDialog = () => {
         description: form.description.trim() || null,
         address: form.address.trim() || null,
         city: form.city.trim(),
-        country: form.country.trim() || "Saudi Arabia",
+        country: form.country.trim() || "Jordan",
         category: form.category,
         price_per_6hours: form.price_per_6hours ? Number(form.price_per_6hours) : null,
         price_per_12hours: form.price_per_12hours ? Number(form.price_per_12hours) : null,
@@ -96,7 +96,7 @@ const AddLocationDialog = () => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="loc-city">City *</Label>
-              <Input id="loc-city" placeholder="e.g. Riyadh" value={form.city} onChange={(e) => handleChange("city", e.target.value)} />
+              <Input id="loc-city" placeholder="e.g. Amman" value={form.city} onChange={(e) => handleChange("city", e.target.value)} />
             </div>
             <div>
               <Label htmlFor="loc-country">Country</Label>

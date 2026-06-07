@@ -89,6 +89,12 @@ async function migrate() {
       role IN ('user','client','location_owner','equipment_provider','model','crew','admin','super_admin')
     );
   `);
+  await pool.query(`
+    ALTER TABLE locations       ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+    ALTER TABLE equipment       ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+    ALTER TABLE crew_profiles   ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+    ALTER TABLE talent_profiles ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+  `);
 }
 
 migrate()

@@ -44,12 +44,13 @@ const ApprovalBadge = ({ status }: { status: string }) => {
   }
 };
 
-const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete, onBlock,
+const ListingRow = ({ icon: Icon, title, subtitle, status, rejectionReason, onEdit, onDelete, onBlock,
   reservationCount, pendingCount, isExpanded, onToggleExpand }: {
-  icon: any; title: string; subtitle: string; status: string;
+  icon: any; title: string; subtitle: string; status: string; rejectionReason?: string | null;
   onEdit?: () => void; onDelete?: () => void; onBlock?: () => void;
   reservationCount?: number; pendingCount?: number; isExpanded?: boolean; onToggleExpand?: () => void;
 }) => (
+  <div>
   <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/20">
     <div className="flex items-center gap-3 min-w-0">
       <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
@@ -86,6 +87,13 @@ const ListingRow = ({ icon: Icon, title, subtitle, status, onEdit, onDelete, onB
       )}
       <ApprovalBadge status={status} />
     </div>
+  </div>
+  {status === "rejected" && rejectionReason && (
+    <div className="mt-1 ms-4 flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+      <span><span className="font-medium">Rejection reason:</span> {rejectionReason}</span>
+    </div>
+  )}
   </div>
 );
 
@@ -658,6 +666,12 @@ const Dashboard = () => {
                             <ApprovalBadge status={l.status} />
                           </div>
                         </div>
+                        {l.status === "rejected" && l.rejection_reason && (
+                          <div className="mt-1 ms-4 flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                            <span><span className="font-medium">Rejection reason:</span> {l.rejection_reason}</span>
+                          </div>
+                        )}
                         {isExp && (
                           <ServiceBookingsPanel
                             bookings={lBookings}
@@ -681,6 +695,7 @@ const Dashboard = () => {
                           title={e.name}
                           subtitle={t('dashboard.equipmentItem', { brand: e.brand || e.category || '—' })}
                           status={e.approval_status || "pending"}
+                          rejectionReason={e.rejection_reason}
                           reservationCount={eBookings.length}
                           pendingCount={ePending}
                           isExpanded={isExp}
@@ -713,6 +728,7 @@ const Dashboard = () => {
                           title={crewName}
                           subtitle={t('dashboard.crewItem', { years: c.experience_years || 0 })}
                           status={c.status || "pending"}
+                          rejectionReason={c.rejection_reason}
                           reservationCount={cBookings.length}
                           pendingCount={cPending}
                           isExpanded={isExp}
@@ -745,6 +761,7 @@ const Dashboard = () => {
                           title={talentName}
                           subtitle={t('dashboard.talentItem', { years: myTalent.experience_years || 0 })}
                           status={myTalent.status || "pending"}
+                          rejectionReason={myTalent.rejection_reason}
                           reservationCount={tBookings.length}
                           pendingCount={tPending}
                           isExpanded={isExp}

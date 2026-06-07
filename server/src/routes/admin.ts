@@ -23,12 +23,12 @@ router.get('/locations/pending', async (_req, res: Response<ApiResponse<any[]>>)
 
 router.patch('/locations/:id/status', async (req, res: Response<ApiResponse<any>>) => {
   try {
-    const { status } = req.body;
+    const { status, rejection_reason } = req.body;
     if (!['approved', 'rejected'].includes(status))
       return res.status(400).json({ success: false, error: 'Invalid status' });
     const { rows } = await pool.query(
-      'UPDATE locations SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [status, req.params.id]
+      'UPDATE locations SET status = $1, rejection_reason = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [status, status === 'rejected' ? (rejection_reason || null) : null, req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: rows[0] });
@@ -55,12 +55,12 @@ router.get('/equipment/pending', async (_req, res: Response<ApiResponse<any[]>>)
 
 router.patch('/equipment/:id/status', async (req, res: Response<ApiResponse<any>>) => {
   try {
-    const { status } = req.body;
+    const { status, rejection_reason } = req.body;
     if (!['approved', 'rejected'].includes(status))
       return res.status(400).json({ success: false, error: 'Invalid status' });
     const { rows } = await pool.query(
-      'UPDATE equipment SET approval_status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [status, req.params.id]
+      'UPDATE equipment SET approval_status = $1, rejection_reason = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [status, status === 'rejected' ? (rejection_reason || null) : null, req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: rows[0] });
@@ -87,12 +87,12 @@ router.get('/crew/pending', async (_req, res: Response<ApiResponse<any[]>>) => {
 
 router.patch('/crew/:id/status', async (req, res: Response<ApiResponse<any>>) => {
   try {
-    const { status } = req.body;
+    const { status, rejection_reason } = req.body;
     if (!['approved', 'rejected'].includes(status))
       return res.status(400).json({ success: false, error: 'Invalid status' });
     const { rows } = await pool.query(
-      'UPDATE crew_profiles SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [status, req.params.id]
+      'UPDATE crew_profiles SET status = $1, rejection_reason = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [status, status === 'rejected' ? (rejection_reason || null) : null, req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: rows[0] });
@@ -119,12 +119,12 @@ router.get('/talent/pending', async (_req, res: Response<ApiResponse<any[]>>) =>
 
 router.patch('/talent/:id/status', async (req, res: Response<ApiResponse<any>>) => {
   try {
-    const { status } = req.body;
+    const { status, rejection_reason } = req.body;
     if (!['approved', 'rejected'].includes(status))
       return res.status(400).json({ success: false, error: 'Invalid status' });
     const { rows } = await pool.query(
-      'UPDATE talent_profiles SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [status, req.params.id]
+      'UPDATE talent_profiles SET status = $1, rejection_reason = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [status, status === 'rejected' ? (rejection_reason || null) : null, req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: rows[0] });
